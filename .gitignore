@@ -1,5 +1,5 @@
 # Ignora la cartella dei dati
-FCmaps_mean/
+data/FCmaps_mean/
 
 # Ignora i file di sistema macOS
 .DS_Store

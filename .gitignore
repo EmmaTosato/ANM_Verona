@@ -1,7 +1,11 @@
-# Ignora la cartella dei dati
+# Ignore data files
 data/
 
-# Ignora i file di sistema macOS
+# Ignore system files
 .DS_Store
+
+# Ignore log files
+.idea/
+*.iml
 
 

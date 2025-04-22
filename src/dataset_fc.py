@@ -23,6 +23,7 @@ class FCDataset(Dataset):
             subj_id = row['ID']
             label = self.label_mapping[row[self.label_column]] if self.task == 'classification' else float(
                 row[self.label_column])
+            # TODO: modify
             file_path = os.path.join(data_dir, f"{subj_id}.npy")
             if os.path.exists(file_path):
                 self.samples.append((file_path, label))

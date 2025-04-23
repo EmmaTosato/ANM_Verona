@@ -1,23 +1,33 @@
 #!/bin/bash
+#SBATCH --mail-user=emmamariasole.tosato@studenti.unipd.it
+#SBATCH --mail-type=ALL
+#SBATCH --time=1-00:00:00
+#SBATCH --ntasks=6
+#SBATCH --mem=24G
+#SBATCH -p brains
 
-# Default arguments
-LABEL_COLUMN="Group"
-RATIOS="0.8 0.1 0.1"
-N_AUGMENTATIONS=10
+
+LISTA_HCP="/data/lorenzo/ANM_Verona//lista_HCP"
+DATASET_DIR="/data/lorenzo/ANM_Verona/dataset"
+OUTPUT_DIR="/data/etosato/ANM_Verona/FCmaps"
+TRACKING_CSV="/data/etosato/ANM_Verona/aug_tracking.csv"
+N_AUG=10
 SUBSET_SIZE=17
-LABELS_FILE="/Users/emmatosato/Documents/PhD/ANM_Verona/data_utils/labels.csv"
-HCP_ROOT="./hcp_subjects"
-OUTPUT_ROOT="./data/"
-SPLITS_CSV="./data_utils/subset_info.csv"
 
-# Run Python script
-python generate_augmented_fc.py \
-  --label_column "$LABEL_COLUMN" \
-  --ratios "$RATIOS" \
-  --n_augmentations $N_AUGMENTATIONS \
-  --subset_size $SUBSET_SIZE \
-  --labels_file "$LABELS_FILE" \
-  --hcp_root "$HCP_ROOT" \
-  --output_root "$OUTPUT_ROOT" \
-  --splits_csv "$SPLITS_CSV" \
-  --augment_val
+# Output dir if it doesn't exist
+mkdir -p $OUTPUT_DIR
+
+# Run script for each subject
+for SUBJECT in "$DATASET_DIR"/*; do
+    SUBJECT_ID=$(basename "$SUBJECT")
+    echo "Processing $SUBJECT_ID"
+    python generate_patient_maps.py \
+      --subject_id "$SUBJECT_ID" \
+      --dataset_dir "$DATASET_DIR" \
+      --hcp_list "$LISTA_HCP" \
+      --output_dir "$OUTPUT_DIR" \
+      --csv_out "$TRACKING_CSV" \
+      --n_augmentations "$N_AUG" \
+      --subset_size "$SUBSET_SIZE"
+done
+

@@ -1,3 +1,4 @@
+# Library imports
 import os
 import random
 import argparse
@@ -19,10 +20,17 @@ args = parser.parse_args()
 # Read HCP list
 with open(args.hcp_list, "r") as f:
     hcp_pool = [line.strip() for line in f.readlines()]
+
+# Ensure reproducibility
 random.seed(42)
 
-# Generate fixed HCP subsets
-hcp_subsets = [random.sample(hcp_pool, args.subset_size) for _ in range(args.n_augmentations)]
+# Generate fixed HCP subsets that NOT overlap
+shuffled_hcp = random.sample(hcp_pool, args.n_augmentations * args.subset_size)
+
+hcp_subsets = [
+    shuffled_hcp[i * args.subset_size : (i + 1) * args.subset_size]
+    for i in range(args.n_augmentations)
+]
 
 # Setup paths
 subject_dir = os.path.join(args.dataset_dir, args.subject_id)

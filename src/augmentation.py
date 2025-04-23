@@ -65,9 +65,13 @@ with open(args.csv_out, "a", newline="") as csvfile:
         merge_cmd = ["fslmerge", "-t", merged_file] + files_to_merge
         mean_cmd = ["fslmaths", merged_file, "-Tmean", mean_file]
 
-        print(f"Running fslmerge for {args.subject_id} aug{i}")
+        print(f"Running fsl commands for {args.subject_id} aug{i}")
         subprocess.run(merge_cmd, check=True)
         subprocess.run(mean_cmd, check=True)
+
+        # Remove temporary merged file
+        if os.path.exists(merged_file):
+            os.remove(merged_file)
 
         # Write tracking
         writer.writerow([args.subject_id, i, ",".join(hcp_ids_used)])

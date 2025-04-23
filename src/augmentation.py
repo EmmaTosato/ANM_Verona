@@ -44,13 +44,16 @@ with open(args.csv_out, "a", newline="") as csvfile:
     if not csv_exists:
         writer.writerow(["subject", "augmentation", "hcp_subset"])
 
+    # Loop over each augmentation and HCP subset
     for i, hcp_subset in enumerate(hcp_subsets, start=1):
         # Filter only files from selected HCPs
         files_to_merge = []
         hcp_ids_used = []
         for hcp_id in hcp_subset:
+            # Search the subject files for those that contain the HCP ID.
             matches = glob.glob(os.path.join(subject_dir, f"*{hcp_id}*.SCA_result.nii.gz"))
             if matches:
+                # Add the files to the list of files to merge
                 files_to_merge.extend(matches)
                 hcp_ids_used.append(hcp_id)
 
@@ -58,6 +61,9 @@ with open(args.csv_out, "a", newline="") as csvfile:
             print(f"[WARNING] No matching SCA files found for {args.subject_id} aug{i}")
             continue
 
+        # Creates files name
+        # merged_file --> temporary file
+        # mean_file --> final file
         merged_file = os.path.join(subject_outdir, f"{args.subject_id}.merged.aug{i}.nii.gz")
         mean_file = os.path.join(subject_outdir, f"{args.subject_id}.FDC.aug{i}.nii.gz")
 

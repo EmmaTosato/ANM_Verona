@@ -5,7 +5,7 @@ data/
 .DS_Store
 
 # Ignore log files
-.idea/
 *.iml
+.idea
 
 

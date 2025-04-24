@@ -2,7 +2,7 @@
 #SBATCH --mail-user=emmamariasole.tosato@studenti.unipd.it
 #SBATCH --mail-type=ALL
 #SBATCH --time=1-00:00:00
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=10
 #SBATCH --mem=32G
 #SBATCH -p brains
 #SBATCH --output=logsEmma/augment_%j.out
@@ -21,10 +21,6 @@ mkdir -p "$OUTPUT_DIR"
 
 # Esegui script per ogni soggetto nella lista
 while read -r SUBJECT_ID; do
-    echo "----------------------------------"
-    echo "Processing subject: $SUBJECT_ID"
-    echo "Start time: $(date)"
-
     python3 augmentation.py \
       --subject_id "$SUBJECT_ID" \
       --dataset_dir "$DATASET_DIR" \
@@ -34,8 +30,6 @@ while read -r SUBJECT_ID; do
       --n_augmentations "$N_AUG" \
       --subset_size "$SUBSET_SIZE"
 
-    echo "End time: $(date)"
-    echo "----------------------------------"
 done < "$DATASET_DIR/list"
 
 echo "Job finished at $(date)"

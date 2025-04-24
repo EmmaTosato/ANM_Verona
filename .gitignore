@@ -1,0 +1,12 @@
+# NOTE: this .gitignore is local-only and removed from tracking
+# Ignore system files
+.DS_Store
+
+# Ignore log files
+*.iml
+
+# PyCharm
+.idea/
+
+
+

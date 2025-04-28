@@ -24,7 +24,7 @@ def list_data(input_dir, augmented=False):
     return files_path
 
 # --- Function for preprocessing the data: loading, thresholding, masking and saving ---
-def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2, normalization=None,  augmented=False):
+def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2,  augmented=False, normalization=None):
     os.makedirs(output_dir, exist_ok=True)
 
     # Load the mask
@@ -36,6 +36,7 @@ def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2, normalizati
         # Load the file
         img = nib.load(file_path)
         data = img.get_fdata()
+        #affine = img.affine
 
         # Threshold the data
         data[data < threshold] = 0
@@ -59,12 +60,14 @@ def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2, normalizati
             subject_folder = os.path.join(output_dir, subj_id)
             os.makedirs(subject_folder, exist_ok=True)
             save_path = os.path.join(subject_folder, f"{filename}.proc.npy")
+            #save_affine_path = os.path.join(subject_folder, f"{filename}.affine.npy")
         else:
             filename = os.path.basename(file_path).replace('.FDC.nii.gz', '')
-            save_path = os.path.join(output_dir, f"{filename}.proc.npy")
+            save_path = os.path.join(output_dir, f"{filename}.processed.npy")
+            #save_affine_path = os.path.join(output_dir, f"{filename}.affine.npy")
 
         np.save(save_path, data.astype(np.float32))
-
+        #np.save(save_affine_path, affine)
 
 # --- Main block ---
 if __name__ == "__main__":
@@ -79,8 +82,8 @@ if __name__ == "__main__":
         output_dir=args.output_dir,
         mask_path=args.mask_path,
         threshold=args.threshold,
-        normalization=args.normalization,
-        augmented=args.augmented
+        augmented=args.augmented,
+        normalization=args.normalization
     )
 
 

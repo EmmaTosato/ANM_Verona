@@ -33,41 +33,47 @@ def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2,  augmented=
 
     # Loop over all files
     for file_path in tqdm(files, desc="Preprocessing FC maps"):
-        # Load the file
-        img = nib.load(file_path)
-        data = img.get_fdata()
-        #affine = img.affine
+        try:
+            # Load the file
+            img = nib.load(file_path)
+            data = img.get_fdata()
+            #affine = img.affine
 
-        # Threshold the data
-        data[data < threshold] = 0
+            # Threshold the data
+            data[data < threshold] = 0
 
-        # Masking
-        data[~mask] = 0
+            # Masking
+            data[~mask] = 0
 
-        # Normalization
-        if normalization:
-            nonzero = data[data != 0]
-            if nonzero.size > 0:
-                min_val = nonzero.min()
-                max_val = nonzero.max()
-                if max_val != min_val:
-                    data[data != 0] = (data[data != 0] - min_val) / (max_val - min_val)
+            # Normalization
+            if normalization:
+                nonzero = data[data != 0]
+                if nonzero.size > 0:
+                    min_val = nonzero.min()
+                    max_val = nonzero.max()
+                    if max_val != min_val:
+                        data[data != 0] = (data[data != 0] - min_val) / (max_val - min_val)
 
-        # Saving
-        if augmented:
-            subj_id = os.path.basename(os.path.dirname(file_path))
-            filename = os.path.basename(file_path).replace('.nii.gz', '')
-            subject_folder = os.path.join(output_dir, subj_id)
-            os.makedirs(subject_folder, exist_ok=True)
-            save_path = os.path.join(subject_folder, f"{filename}.proc.npy")
-            #save_affine_path = os.path.join(subject_folder, f"{filename}.affine.npy")
-        else:
-            filename = os.path.basename(file_path).replace('.FDC.nii.gz', '')
-            save_path = os.path.join(output_dir, f"{filename}.processed.npy")
-            #save_affine_path = os.path.join(output_dir, f"{filename}.affine.npy")
+            # Saving
+            if augmented:
+                subj_id = os.path.basename(os.path.dirname(file_path))
+                filename = os.path.basename(file_path).replace('.nii.gz', '')
+                subject_folder = os.path.join(output_dir, subj_id)
+                os.makedirs(subject_folder, exist_ok=True)
+                save_path = os.path.join(subject_folder, f"{filename}.proc.npy")
+                #save_affine_path = os.path.join(subject_folder, f"{filename}.affine.npy")
+            else:
+                filename = os.path.basename(file_path).replace('.FDC.nii.gz', '')
+                save_path = os.path.join(output_dir, f"{filename}.processed.npy")
+                #save_affine_path = os.path.join(output_dir, f"{filename}.affine.npy")
 
-        np.save(save_path, data.astype(np.float32))
-        #np.save(save_affine_path, affine)
+            np.save(save_path, data.astype(np.float32))
+            #np.save(save_affine_path, affine)
+
+        except Exception as e:
+            print(f"Error processing file {file_path}: {e}")
+            continue
+
 
 # --- Main block ---
 if __name__ == "__main__":

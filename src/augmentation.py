@@ -16,6 +16,7 @@ parser.add_argument("--output_dir", type=str, required=True)
 parser.add_argument("--csv_out", type=str, required=True)
 parser.add_argument("--n_augmentations", type=int, default=10)
 parser.add_argument("--subset_size", type=int, default=17)
+parser.add_argument("--index", type=int, required=True)
 args = parser.parse_args()
 
 # --- Read HCP list ---
@@ -54,11 +55,9 @@ with open(args.csv_out, "a", newline="") as csvfile:
 
     # If the scv file doesn't exit, prepare it
     if not csv_exists:
-        writer.writerow(["subject", "augmentation", "hcp_subset"])
+        writer.writerow(["subject", "augmentation", "hcp_subset", "missing_hcps"])
 
     # --- Begin processing this subject ---
-    print("\n----------------------------------")
-    print(f"Processing subject: {args.subject_id}\n")
     start_time = time.time()
 
     # Loop over each augmentation
@@ -74,43 +73,47 @@ with open(args.csv_out, "a", newline="") as csvfile:
                 hcp_ids_used.append(hcp_id)
 
         if len(files_to_merge) < args.subset_size:
-            print(f"Augmentation {i} NOT succeed")
-            print(f"- Reason: only {len(files_to_merge)}/{args.subset_size} files found")
-            missing = [hcp for hcp in hcp_subset if hcp not in hcp_ids_used]
-            print(f"- Missing HCPs: {', '.join(missing)}\n")
-            continue
+            print(f"[ERROR] Augmentation {i} NOT succeed: only {len(files_to_merge)}/{args.subset_size} files found")
+            #continue
 
         merged_file = os.path.join(subject_outdir, f"{args.subject_id}.merged.aug{i}.nii.gz")
         mean_file = os.path.join(subject_outdir, f"{args.subject_id}.FDC.aug{i}.nii.gz")
 
+        # Try and except
         try:
             subprocess.run(["fslmerge", "-t", merged_file] + files_to_merge, check=True)
         except subprocess.CalledProcessError as e:
-            print(f"Augmentation {i} NOT succeed")
-            print(f"- Reason: fslmerge failed with error {e}\n")
+            print(f"[ERROR] Subject {args.subject_id}")
+            print(f"[ERROR] Augmentation {i} NOT succeed: fslmerge failed with error {e}")
             continue
 
         try:
             subprocess.run(["fslmaths", merged_file, "-Tmean", mean_file], check=True)
         except subprocess.CalledProcessError as e:
-            print(f"Augmentation {i} NOT succeed")
-            print(f"- Reason: fslmaths failed with error {e}\n")
+            print(f"[ERROR] Subject {args.subject_id}")
+            print(f"[ERROR] Augmentation {i} NOT succeed: fslmaths failed with error {e}")
             continue
 
         if not os.path.exists(mean_file):
-            print(f"Augmentation {i} NOT succeed")
-            print(f"- Reason: output file {mean_file} was not created\n")
+            print(f"[ERROR] Subject {args.subject_id}")
+            print(f"[ERROR] Augmentation {i} NOT succeed: output file {mean_file} was not created")
             continue
 
+        # Remove merged files
         if os.path.exists(merged_file):
             os.remove(merged_file)
 
+        # Write to csv
         hcp_ids_used = sorted(hcp_ids_used)
-        writer.writerow([args.subject_id, i, ",".join(hcp_ids_used)])
+        missing_hcps = [hcp for hcp in hcp_subset if hcp not in hcp_ids_used]
+        writer.writerow([
+            args.subject_id,
+            i,
+            ",".join(hcp_ids_used),
+            ",".join(missing_hcps) if missing_hcps else ""
+        ])
 
-        print(f"Augmentation {i} succeed")
-        print(f"{len(hcp_ids_used)} files used\n")
-
+    # Print every 10 subjectes
     end_time = time.time()
     elapsed = round(end_time - start_time, 2)
-    print(f"TIME for this subject: {elapsed} seconds")
+    print(f"\nProcessed subject: {args.subject_id} with time {elapsed}\n")

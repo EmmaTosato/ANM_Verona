@@ -8,5 +8,8 @@
 # PyCharm
 .idea/
 
+# Ignore data
+data/
+
 
 

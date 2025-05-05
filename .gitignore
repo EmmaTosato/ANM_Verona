@@ -1,7 +1,4 @@
 # NOTE: this .gitignore is local-only and removed from tracking
-# Ignore data files
-data/
-
 # Ignore system files
 .DS_Store
 
@@ -10,3 +7,6 @@ data/
 
 # PyCharm
 .idea/
+
+# Ignore data
+data/

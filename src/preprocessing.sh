@@ -4,6 +4,7 @@
 # Set your real paths below
 # Remove --augmented if data is not augmented
 # Remove --normalization if you don't want MinMax scaling
+
 python preprocessing.py \
     --input_dir "/Users/emmatosato/Documents/PhD/ANM_Verona/data/FCmaps" \
     --output_dir "/Users/emmatosato/Documents/PhD/ANM_Verona/data/FCmaps_processed" \

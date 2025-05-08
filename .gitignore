@@ -11,3 +11,6 @@ data/
 
 # PyCharm
 .idea/
+
+# Ignore images
+output_files/

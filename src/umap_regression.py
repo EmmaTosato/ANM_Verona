@@ -113,7 +113,7 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
         y = np.log1p(y)
 
     # Reduce dimensionality with UMAP
-    x_umap = run_umap(x, plot_flag=False)
+    x_umap = run_umap(x, plot_flag=False, save_path = None, title = '')
 
     # Regression with OLS
     x_ols = build_design_matrix(df_merged, x_umap, covariates)

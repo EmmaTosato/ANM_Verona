@@ -82,8 +82,7 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column,save_path, t
 # ---------------------------
 # Main function
 # ---------------------------
-def main(df_masked, df_meta, save_path, title_umap, title_cluster,
-         plot_flag=True):
+def main(df_masked, df_meta, save_path, title_umap, title_cluster, plot_flag=True):
 
     if save_path:
         os.makedirs(save_path, exist_ok=True)
@@ -92,7 +91,7 @@ def main(df_masked, df_meta, save_path, title_umap, title_cluster,
     df_merged, x = x_features_return(df_masked, df_meta)
 
     # Reduce dimensionality with UMAP
-    x_umap = run_umap(x, plot_flag=False)  # UMAP plotting is disabled
+    x_umap = run_umap(x, plot_flag=True, save_path = save_path,title = title_umap )  # UMAP plotting is disabled
 
     # Clustering
     labels_dict = run_clustering(x_umap)

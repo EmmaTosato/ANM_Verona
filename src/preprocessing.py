@@ -60,7 +60,7 @@ def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2,  augmented=
                 filename = os.path.basename(file_path).replace('.nii.gz', '')
                 subject_folder = os.path.join(output_dir, subj_id)
                 os.makedirs(subject_folder, exist_ok=True)
-                save_path = os.path.join(subject_folder, f"{filename}.proc.npy")
+                save_path = os.path.join(subject_folder, f"{filename}.processed.npy")
                 #save_affine_path = os.path.join(subject_folder, f"{filename}.affine.npy")
             else:
                 filename = os.path.basename(file_path).replace('.FDC.nii.gz', '')

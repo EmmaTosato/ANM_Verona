@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import hdbscan
 from sklearn.cluster import KMeans
 
-from umap_run import x_features_return, run_umap
+from ANM_Verona.src.data_processing.umap_run import x_features_return, run_umap
 
 # ---------------------------
 # Run clustering algorithms

@@ -35,10 +35,12 @@ def main():
     subjects = df_labels['ID'].values
     labels = df_labels[args.label_column].values
 
+    # For k-fold cross-validation
     skf = StratifiedKFold(n_splits=args.n_folds, shuffle=True, random_state=42)
 
     best_fold_info = {'accuracy': -float('inf')}
 
+    # Loop over the k-fold
     for fold, (train_idx, val_idx) in enumerate(skf.split(subjects, labels)):
         print(f"\n--- Fold {fold + 1}/{args.n_folds} ---")
 
@@ -48,12 +50,14 @@ def main():
         df_train = df_labels[df_labels['ID'].isin(train_ids)].reset_index(drop=True)
         df_val = df_labels[df_labels['ID'].isin(val_ids)].reset_index(drop=True)
 
+        # Create Datasets
         train_dataset = AugmentedFCDataset(args.data_dir, df_train, args.label_column, task='classification')
         val_dataset = FCDataset(args.data_dir, df_val, args.label_column, task='classification')
 
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
 
+        # Create the model and optimizer
         if args.model_type == 'resnet':
             model = ResNet3D(n_classes=2).to(device)
         elif args.model_type == 'vgg':
@@ -64,10 +68,12 @@ def main():
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
+        # Variables
         best_accuracy = -float('inf')
         best_epoch = -1
         best_model_path = os.path.join(args.checkpoints_dir, f"best_model_fold{fold+1}.pt")
 
+        # Loop over epochs
         for epoch in range(args.epochs):
             train_loss = train(model, train_loader, criterion, optimizer, device)
             val_loss, val_accuracy = validate(model, val_loader, criterion, device)

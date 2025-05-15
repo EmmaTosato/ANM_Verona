@@ -50,7 +50,7 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, device, ep
     return best_accuracy, best_epoch, train_losses, val_losses, val_accuracies
 
 
-def main_worker(params, crossval=True, evaluate=False):
+def main_worker(params, crossval_flag=True, evaluation_flag=False):
     # Ensure checkpoint directory exists
     os.makedirs(params['checkpoints_dir'], exist_ok=True)
 
@@ -82,7 +82,7 @@ def main_worker(params, crossval=True, evaluate=False):
     test_df = df_pair[df_pair['ID'].isin(test_subj)].reset_index(drop=True)
 
     # If evaluation flag is set, run evaluation on test set
-    if evaluate:
+    if evaluation_flag:
         test_dataset = FCDataset(params['data_dir'], test_df, params['label_column'], task='classification')
         test_loader = DataLoader(test_dataset, batch_size=params['batch_size'], shuffle=False)
 
@@ -109,7 +109,7 @@ def main_worker(params, crossval=True, evaluate=False):
     train_subjects = train_df['ID'].values
     train_labels = train_df[params['label_column']].values
 
-    if crossval:
+    if crossval_flag:
         # Setup stratified K-fold cross-validation
         skf = StratifiedKFold(n_splits=params['n_folds'], shuffle=True, random_state=42)
         best_fold_info = {'accuracy': -float('inf')}
@@ -181,7 +181,8 @@ if __name__ == '__main__':
         'weight_decay': 1e-5,
         'n_folds': 2,
         'checkpoints_dir': '/data/users/etosato/ANM_Verona/src/cnn/checkpoints',
+        'checkpoint_path': '/data/users/etosato/ANM_Verona/src/cnn/checkpoints/best_model_fold1.pt',
         'to_exclude': ['3_S_5003', '4_S_5003', '4_S_5005', '4_S_5007', '4_S_5008']
     }
 
-    main_worker(params, crossval=True, evaluate=False)
+    main_worker(params, crossval_flag=False, evaluation_flag=True)

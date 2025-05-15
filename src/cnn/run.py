@@ -17,15 +17,19 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, device, ep
     train_losses, val_losses, val_accuracies = [], [], []
 
     for epoch in range(epochs):
+        # Training step
         train_loss = train(model, train_loader, criterion, optimizer, device)
+        # Validation step
         val_loss, val_accuracy = validate(model, val_loader, criterion, device)
 
         print(f"Epoch {epoch+1}/{epochs} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_accuracy:.4f}")
 
+        # Store losses and accuracy for plotting or analysis later
         train_losses.append(train_loss)
         val_losses.append(val_loss)
         val_accuracies.append(val_accuracy)
 
+        # Save checkpoint if validation accuracy improves
         if val_accuracy > best_accuracy:
             best_accuracy = val_accuracy
             best_epoch = epoch + 1
@@ -47,21 +51,26 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, device, ep
 
 
 def main_worker(params, crossval=True, evaluate=False):
+    # Ensure checkpoint directory exists
     os.makedirs(params['checkpoints_dir'], exist_ok=True)
+
+    # Select device (GPU if available)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Load labels and apply exclusions
+    # Load labels CSV and apply any exclusions
     df_labels = pd.read_csv(params['labels_path'])
     to_exclude = params.get('to_exclude', [])
     if to_exclude:
         df_labels = df_labels[~df_labels['ID'].isin(to_exclude)].reset_index(drop=True)
 
+    # Filter dataframe to keep only the two groups of interest
     df_pair = df_labels[df_labels['Group'].isin([params['group1'], params['group2']])].reset_index(drop=True)
 
-    # Explicit train/test split
+    # Extract subject IDs and their labels
     subjects = df_pair['ID'].values
     labels = df_pair[params['label_column']].values
 
+    # Split subjects into train and test sets with stratification
     train_subj, test_subj = train_test_split(
         subjects,
         stratify=labels,
@@ -72,11 +81,12 @@ def main_worker(params, crossval=True, evaluate=False):
     train_df = df_pair[df_pair['ID'].isin(train_subj)].reset_index(drop=True)
     test_df = df_pair[df_pair['ID'].isin(test_subj)].reset_index(drop=True)
 
+    # If evaluation flag is set, run evaluation on test set
     if evaluate:
-        # Evaluation on test set
         test_dataset = FCDataset(params['data_dir'], test_df, params['label_column'], task='classification')
         test_loader = DataLoader(test_dataset, batch_size=params['batch_size'], shuffle=False)
 
+        # Instantiate model based on type
         if params['model_type'] == 'resnet':
             model = ResNet3D(n_classes=len(df_pair[params['label_column']].unique()))
         elif params['model_type'] == 'densenet':
@@ -84,38 +94,45 @@ def main_worker(params, crossval=True, evaluate=False):
         else:
             raise ValueError("Unsupported model type")
 
+        # Load saved checkpoint weights
         checkpoint = torch.load(params['checkpoint_path'], map_location=device)
         model.load_state_dict(checkpoint['state_dict'] if 'state_dict' in checkpoint else checkpoint)
         model.to(device)
 
+        # Run evaluation and print metrics
         y_true, y_pred = evaluate(model, test_loader, device)
         metrics = compute_metrics(y_true, y_pred)
         print_metrics(metrics)
         return
 
-    # Cross-validation on training set only
+    # Prepare for training: get subjects and labels from training dataframe
     train_subjects = train_df['ID'].values
     train_labels = train_df[params['label_column']].values
 
     if crossval:
+        # Setup stratified K-fold cross-validation
         skf = StratifiedKFold(n_splits=params['n_folds'], shuffle=True, random_state=42)
         best_fold_info = {'accuracy': -float('inf')}
 
         for fold, (train_idx, val_idx) in enumerate(skf.split(train_subjects, train_labels)):
             print(f"\n--- Fold {fold + 1}/{params['n_folds']} ---")
 
+            # Split train and validation IDs for this fold
             fold_train_ids = train_subjects[train_idx]
             fold_val_ids = train_subjects[val_idx]
 
             fold_train_df = train_df[train_df['ID'].isin(fold_train_ids)].reset_index(drop=True)
             fold_val_df = train_df[train_df['ID'].isin(fold_val_ids)].reset_index(drop=True)
 
+            # Create datasets for training and validation
             train_dataset = AugmentedFCDataset(params['data_dir_augmented'], fold_train_df, params['label_column'], task='classification')
             val_dataset = FCDataset(params['data_dir'], fold_val_df, params['label_column'], task='classification')
 
+            # Create dataloaders
             train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], shuffle=True)
             val_loader = DataLoader(val_dataset, batch_size=params['batch_size'], shuffle=False)
 
+            # Instantiate the model and move to device
             if params['model_type'] == 'resnet':
                 model = ResNet3D(n_classes=len(df_pair[params['label_column']].unique())).to(device)
             elif params['model_type'] == 'densenet':
@@ -123,16 +140,19 @@ def main_worker(params, crossval=True, evaluate=False):
             else:
                 raise ValueError("Unsupported model type")
 
+            # Define loss function and optimizer
             criterion = torch.nn.CrossEntropyLoss()
             optimizer = torch.optim.Adam(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
 
             best_model_path = os.path.join(params['checkpoints_dir'], f"best_model_fold{fold+1}.pt")
 
+            # Run training loop over epochs
             best_accuracy, best_epoch, train_losses, val_losses, val_accuracies = run_epochs(
                 model, train_loader, val_loader, criterion, optimizer, device,
                 epochs=params['epochs'], checkpoint_path=best_model_path
             )
 
+            # Track best model info across folds
             if best_accuracy > best_fold_info['accuracy']:
                 best_fold_info = {
                     'fold': fold + 1,
@@ -160,7 +180,8 @@ if __name__ == '__main__':
         'lr': 1e-4,
         'weight_decay': 1e-5,
         'n_folds': 2,
-        'checkpoints_dir': '/data/users/etosato/ANM_Verona/src/cnn/checkpoints'
+        'checkpoints_dir': '/data/users/etosato/ANM_Verona/src/cnn/checkpoints',
+        'to_exclude': ['3_S_5003', '4_S_5003', '4_S_5005', '4_S_5007', '4_S_5008']
     }
 
     main_worker(params, crossval=True, evaluate=False)

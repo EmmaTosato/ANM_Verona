@@ -1,6 +1,4 @@
-# run_crossval_training.py
 import os
-import argparse
 import torch
 import torch.nn as nn
 import pandas as pd
@@ -12,37 +10,22 @@ from models import ResNet3D, VGG3D, AlexNet3D
 from train import train, validate
 from test import evaluate, compute_metrics, print_metrics
 
+def main(params=None):
+    if params is None:
+        raise ValueError("Parameters must be provided to main()")
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', type=str, required=True)
-    parser.add_argument('--labels_path', type=str, required=True)
-    parser.add_argument('--label_column', type=str, default='Group')
-    parser.add_argument('--model_type', type=str, choices=['resnet', 'vgg', 'alexnet'], default='resnet')
-    parser.add_argument('--epochs', type=int, default=20)
-    parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--lr', type=float, default=1e-4)
-    parser.add_argument('--weight_decay', type=float, default=1e-5)
-    parser.add_argument('--n_folds', type=int, default=10)
-    parser.add_argument('--checkpoints_dir', type=str, default='checkpoints')
-    args = parser.parse_args()
-
-    os.makedirs(args.checkpoints_dir, exist_ok=True)
+    os.makedirs(params['checkpoints_dir'], exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Load labels
-    df_labels = pd.read_csv(args.labels_path)
+    df_labels = pd.read_csv(params['labels_path'])
     subjects = df_labels['ID'].values
-    labels = df_labels[args.label_column].values
+    labels = df_labels[params['label_column']].values
 
-    # For k-fold cross-validation
-    skf = StratifiedKFold(n_splits=args.n_folds, shuffle=True, random_state=42)
-
+    skf = StratifiedKFold(n_splits=params['n_folds'], shuffle=True, random_state=42)
     best_fold_info = {'accuracy': -float('inf')}
 
-    # Loop over the k-fold
     for fold, (train_idx, val_idx) in enumerate(skf.split(subjects, labels)):
-        print(f"\n--- Fold {fold + 1}/{args.n_folds} ---")
+        print(f"\n--- Fold {fold + 1}/{params['n_folds']} ---")
 
         train_ids = subjects[train_idx]
         val_ids = subjects[val_idx]
@@ -50,35 +33,39 @@ def main():
         df_train = df_labels[df_labels['ID'].isin(train_ids)].reset_index(drop=True)
         df_val = df_labels[df_labels['ID'].isin(val_ids)].reset_index(drop=True)
 
-        # Create Datasets
-        train_dataset = AugmentedFCDataset(args.data_dir, df_train, args.label_column, task='classification')
-        val_dataset = FCDataset(args.data_dir, df_val, args.label_column, task='classification')
+        train_dataset = AugmentedFCDataset(params['data_dir'], df_train, params['label_column'], task='classification')
+        val_dataset = FCDataset(params['data_dir'], df_val, params['label_column'], task='classification')
 
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=params['batch_size'], shuffle=False)
 
-        # Create the model and optimizer
-        if args.model_type == 'resnet':
+        if params['model_type'] == 'resnet':
             model = ResNet3D(n_classes=2).to(device)
-        elif args.model_type == 'vgg':
+        elif params['model_type'] == 'vgg':
             model = VGG3D(n_classes=2).to(device)
-        elif args.model_type == 'alexnet':
+        elif params['model_type'] == 'alexnet':
             model = AlexNet3D(n_classes=2).to(device)
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        optimizer = torch.optim.Adam(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
 
-        # Variables
         best_accuracy = -float('inf')
         best_epoch = -1
-        best_model_path = os.path.join(args.checkpoints_dir, f"best_model_fold{fold+1}.pt")
+        best_model_path = os.path.join(params['checkpoints_dir'], f"best_model_fold{fold+1}.pt")
 
-        # Loop over epochs
-        for epoch in range(args.epochs):
+        train_losses = []
+        val_losses = []
+        val_accuracies = []
+
+        for epoch in range(params['epochs']):
             train_loss = train(model, train_loader, criterion, optimizer, device)
             val_loss, val_accuracy = validate(model, val_loader, criterion, device)
 
-            print(f"Epoch {epoch+1}/{args.epochs} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_accuracy:.4f}")
+            print(f"Epoch {epoch+1}/{params['epochs']} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_accuracy:.4f}")
+
+            train_losses.append(train_loss)
+            val_losses.append(val_loss)
+            val_accuracies.append(val_accuracy)
 
             if val_accuracy > best_accuracy:
                 best_accuracy = val_accuracy
@@ -87,7 +74,12 @@ def main():
                     'state_dict': model.state_dict(),
                     'optimizer_state': optimizer.state_dict(),
                     'val_accuracy': val_accuracy,
-                    'epoch': best_epoch
+                    'epoch': best_epoch,
+                    'metrics': {
+                        'train_losses': train_losses,
+                        'val_losses': val_losses,
+                        'val_accuracies': val_accuracies
+                    }
                 }, best_model_path)
 
         print(f"Best model for fold {fold+1} saved with val accuracy {best_accuracy:.4f} at epoch {best_epoch}")
@@ -105,4 +97,16 @@ def main():
     print(f"Model path: {best_fold_info['model_path']}")
 
 if __name__ == '__main__':
-    main()
+    params = {
+        'data_dir': 'path/to/fcmaps',
+        'labels_path': 'path/to/labels.csv',
+        'label_column': 'Group',
+        'model_type': 'resnet',
+        'epochs': 20,
+        'batch_size': 16,
+        'lr': 1e-4,
+        'weight_decay': 1e-5,
+        'n_folds': 10,
+        'checkpoints_dir': 'checkpoints'
+    }
+    main(params)

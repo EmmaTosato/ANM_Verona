@@ -3,23 +3,29 @@ import numpy as np
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 def evaluate(model, loader, device):
-    model.eval()
+    """
+    Evaluate the model on a given dataset loader.
+    """
+    model.eval()  # Set the model to evaluation mode (no dropout, etc.)
     true_labels, pred_labels = [], []
 
-    # Disable gradient computation
-    with torch.no_grad():
+    with torch.no_grad():  # Disable gradient computation for efficiency
         for x, y in loader:
+            # Move data to device (CPU or GPU)
             x, y = x.to(device), y.to(device)
+
+            # Forward pass
             outputs = model(x)
 
-            # Convert output to prediction
+            # Get predicted class index (argmax over output logits)
             preds = torch.argmax(outputs, dim=1)
 
-            # Store true and predicted values
+            # Store ground-truth and predictions
             true_labels.extend(y.cpu().numpy())
             pred_labels.extend(preds.cpu().numpy())
 
     return np.array(true_labels), np.array(pred_labels)
+
 
 def compute_metrics(y_true, y_pred):
     accuracy = accuracy_score(y_true, y_pred)
@@ -39,6 +45,7 @@ def compute_metrics(y_true, y_pred):
 
 
 def print_metrics(metrics):
+
     print("\n--- Test Metrics ---")
     print(f"Accuracy : {metrics['accuracy']:.4f}")
     print(f"Precision: {metrics['precision']:.4f}")

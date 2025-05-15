@@ -3,9 +3,6 @@ import numpy as np
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 def evaluate(model, loader, device):
-    """
-    Evaluate the model on a given dataset loader.
-    """
     model.eval()  # Set the model to evaluation mode (no dropout, etc.)
     true_labels, pred_labels = [], []
 
@@ -45,7 +42,6 @@ def compute_metrics(y_true, y_pred):
 
 
 def print_metrics(metrics):
-
     print("\n--- Test Metrics ---")
     print(f"Accuracy : {metrics['accuracy']:.4f}")
     print(f"Precision: {metrics['precision']:.4f}")

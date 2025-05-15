@@ -49,7 +49,7 @@ def validate(model, val_loader, criterion, device):
 def save_best_model(model, path):
     torch.save(model.state_dict(), path)
 
-def plot_losses(train_losses, val_losses, val_accuracies=None):
+def plot_losses(train_losses, val_losses, val_accuracies=None, save_path=None):
     plt.figure(figsize=(8, 5))
 
     # Plot training and validation loss
@@ -64,4 +64,6 @@ def plot_losses(train_losses, val_losses, val_accuracies=None):
     plt.title('Training Curves')
     plt.legend()
     plt.grid(True)
-    plt.show()
+    if save_path:
+        plt.savefig(save_path)
+        plt.close()

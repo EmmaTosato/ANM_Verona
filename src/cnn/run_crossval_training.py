@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from sklearn.model_selection import StratifiedKFold
 
 from datasets import FCDataset, AugmentedFCDataset
-from models import ResNet3D, VGG3D, AlexNet3D
+from models import ResNet3D, DenseNet3D, MedMamba
 from train import train, validate
 from test import evaluate, compute_metrics, print_metrics
 

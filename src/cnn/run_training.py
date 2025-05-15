@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 
 from datasets import FCDataset, AugmentedFCDataset
-from models import ResNet3D, VGG3D, AlexNet3D
+from models import ResNet3D, DenseNet3D, MedMamba
 from train import train, validate
 from test import evaluate, compute_metrics, print_metrics
 
@@ -44,10 +44,10 @@ def main(params=None):
     # Model selection
     if params['model_type'] == 'resnet':
         model = ResNet3D(n_classes=2).to(device)
-    elif params['model_type'] == 'vgg':
-        model = VGG3D(n_classes=2).to(device)
-    elif params['model_type'] == 'alexnet':
-        model = AlexNet3D(n_classes=2).to(device)
+    elif params['model_type'] == 'densenet':
+        model = DenseNet3D(n_classes=2).to(device)
+    elif params['model_type'] == 'medmamba':
+        model = MedMamba(n_classes=2).to(device)
 
     # Training components
     criterion = nn.CrossEntropyLoss()

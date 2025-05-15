@@ -13,7 +13,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 from datasets import FCDataset, AugmentedFCDataset
-from models import ResNet3D, VGG3D, AlexNet3D
+from models import ResNet3D, DenseNet3D, MedMamba
 from train import train, validate
 
 
@@ -32,12 +32,12 @@ class CNNGridSearch:
         self.labels = df_labels[label_column].values
 
     def build_model(self, model_type, n_classes):
-        if model_type == 'resnet':
-            model = ResNet3D(n_classes=n_classes)
-        elif model_type == 'vgg':
-            model = VGG3D(n_classes=n_classes)
-        elif model_type == 'alexnet':
-            model = AlexNet3D(n_classes=n_classes)
+        if params['model_type'] == 'resnet':
+            model = ResNet3D(n_classes=2).to(device)
+        elif params['model_type'] == 'densenet':
+            model = DenseNet3D(n_classes=2).to(device)
+        elif params['model_type'] == 'medmamba':
+            model = MedMamba(n_classes=2).to(device)
         else:
             raise ValueError("Invalid model type")
         return model.to(self.device)
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     data_dir = 'path/to/fcmaps'
 
     param_grid = {
-        'model_type': ['resnet', 'vgg', 'alexnet'],
+        'model_type': ['resnet', 'densenet', 'medmamba'],
         'lr': [1e-3, 1e-4],
         'batch_size': [8, 16],
         'optimizer': ['adam', 'sgd'],

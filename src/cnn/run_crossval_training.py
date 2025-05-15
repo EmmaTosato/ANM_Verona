@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import pandas as pd
 from torch.utils.data import DataLoader
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from datasets import FCDataset, AugmentedFCDataset
 from models import ResNet3D, DenseNet3D
@@ -18,6 +18,11 @@ def main(params=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     df_labels = pd.read_csv(params['labels_path'])
+
+    # Temporary exclusion of problematic subjects
+    to_exclude = ['3_S_5003', '4_S_5003', '4_S_5005', '4_S_5007', '4_S_5008']
+    df_labels = df_labels[~df_labels['ID'].isin(to_exclude)].reset_index(drop=True)
+
     df_labels = df_labels[df_labels['Group'].isin([params['group1'], params['group2']])].reset_index(drop=True)
 
     subjects = df_labels['ID'].values

@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 
 from datasets import FCDataset, AugmentedFCDataset
-from models import ResNet3D, DenseNet3D, MedMamba
+from models import ResNet3D, DenseNet3D
 from train import train, validate
 from test import evaluate, compute_metrics, print_metrics
 
@@ -33,8 +33,8 @@ def main(params=None):
     final_train_labels = df_labels[df_labels['ID'].isin(final_train_subj)].reset_index(drop=True)
 
     # Dataloaders
-    train_dataset = AugmentedFCDataset(params['data_dir'], final_train_labels, params['label_column'], task='classification')
-    val_dataset = FCDataset(params['data_dir'], val_labels, params['label_column'], task='classification')
+    train_dataset = AugmentedFCDataset(params['data_dir_augmented'], df_train, params['label_column'],task='classification')
+    val_dataset = FCDataset(params['data_dir'], df_val, params['label_column'], task='classification')
     test_dataset = FCDataset(params['data_dir'], test_labels, params['label_column'], task='classification')
 
     train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], shuffle=True)
@@ -46,8 +46,6 @@ def main(params=None):
         model = ResNet3D(n_classes=2).to(device)
     elif params['model_type'] == 'densenet':
         model = DenseNet3D(n_classes=2).to(device)
-    elif params['model_type'] == 'medmamba':
-        model = MedMamba(n_classes=2).to(device)
 
     # Training components
     criterion = nn.CrossEntropyLoss()
@@ -85,16 +83,18 @@ if __name__ == '__main__':
 
 # Configuration dictionary
     params = {
-        'data_dir': 'path/to/fcmaps',
-        'labels_path': 'path/to/labels.csv',
+        'data_dir_augmented': '/data/users/etosato/ANM_Verona/data/FCmaps_augmented_processed',
+        'data_dir': '/data/users/etosato/ANM_Verona/data/FC_maps',
+        'labels_path': '/data/users/etosato/ANM_Verona/data/labels.csv',
         'label_column': 'Group',
         'model_type': 'resnet',
-        'epochs': 20,
-        'batch_size': 16,
+        'epochs': 2,
+        'batch_size': 4,
         'lr': 1e-4,
         'weight_decay': 1e-5,
         'val_size': 0.2,
         'test_size': 0.2,
         'checkpoint_path': 'best_model.pt'
     }
+
     main()

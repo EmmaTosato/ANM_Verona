@@ -13,7 +13,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 from datasets import FCDataset, AugmentedFCDataset
-from models import ResNet3D, DenseNet3D, MedMamba
+from models import ResNet3D, DenseNet3D
 from train import train, validate
 
 
@@ -32,18 +32,16 @@ class CNNGridSearch:
         self.labels = df_labels[label_column].values
 
     def build_model(self, model_type, n_classes):
-        if params['model_type'] == 'resnet':
-            model = ResNet3D(n_classes=2).to(device)
-        elif params['model_type'] == 'densenet':
-            model = DenseNet3D(n_classes=2).to(device)
-        elif params['model_type'] == 'medmamba':
-            model = MedMamba(n_classes=2).to(device)
+        if param_grid['model_type'] == 'resnet':
+            model = ResNet3D(n_classes=2).to(self.device)
+        elif param_grid['model_type'] == 'densenet':
+            model = DenseNet3D(n_classes=2).to(self.device)
         else:
             raise ValueError("Invalid model type")
         return model.to(self.device)
 
     def run_fold(self, model, df_train, df_val, params):
-        train_dataset = AugmentedFCDataset(self.data_dir, df_train, self.label_column, task='classification')
+        train_dataset = AugmentedFCDataset(self.data_dir_augmented, df_train, self.label_column, task='classification')
         val_dataset = FCDataset(self.data_dir, df_val, self.label_column, task='classification')
 
         train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], shuffle=True)
@@ -186,6 +184,7 @@ if __name__ == '__main__':
     import argparse
     df = pd.read_csv('path/to/labels.csv')
     data_dir = 'path/to/fcmaps'
+    data_dir_augmented = 'path/to/augmented_fcmaps'
 
     param_grid = {
         'model_type': ['resnet', 'densenet', 'medmamba'],

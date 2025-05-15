@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 from torchvision.models.video import r3d_18
 from monai.networks.nets import DenseNet121
-from medmamba.medmamba import Med_Mamba_tiny  # Assumes MedMamba repo is in PYTHONPATH
 
 class ResNet3D(nn.Module):
     def __init__(self, n_classes):
@@ -29,11 +28,3 @@ class DenseNet3D(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-
-class MedMamba(nn.Module):
-    def __init__(self, n_classes):
-        super(MedMamba, self).__init__()
-        self.backbone = Med_Mamba_tiny(num_classes=n_classes)
-
-    def forward(self, x):
-        return self.backbone(x)

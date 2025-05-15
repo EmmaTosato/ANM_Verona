@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from sklearn.model_selection import StratifiedKFold
 
 from datasets import FCDataset, AugmentedFCDataset
-from models import ResNet3D, DenseNet3D, MedMamba
+from models import ResNet3D, DenseNet3D
 from train import train, validate
 from test import evaluate, compute_metrics, print_metrics
 
@@ -18,6 +18,8 @@ def main(params=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     df_labels = pd.read_csv(params['labels_path'])
+    df_labels = df_labels[df_labels['Group'].isin([params['group1'], params['group2']])].reset_index(drop=True)
+
     subjects = df_labels['ID'].values
     labels = df_labels[params['label_column']].values
 
@@ -33,7 +35,7 @@ def main(params=None):
         df_train = df_labels[df_labels['ID'].isin(train_ids)].reset_index(drop=True)
         df_val = df_labels[df_labels['ID'].isin(val_ids)].reset_index(drop=True)
 
-        train_dataset = AugmentedFCDataset(params['data_dir'], df_train, params['label_column'], task='classification')
+        train_dataset = AugmentedFCDataset(params['data_dir_augmented'], df_train, params['label_column'], task='classification')
         val_dataset = FCDataset(params['data_dir'], df_val, params['label_column'], task='classification')
 
         train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], shuffle=True)
@@ -41,10 +43,8 @@ def main(params=None):
 
         if params['model_type'] == 'resnet':
             model = ResNet3D(n_classes=2).to(device)
-        elif params['model_type'] == 'vgg':
-            model = VGG3D(n_classes=2).to(device)
-        elif params['model_type'] == 'alexnet':
-            model = AlexNet3D(n_classes=2).to(device)
+        elif params['model_type'] == 'densenet':
+            model = DenseNet3D(n_classes=2).to(device)
 
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
@@ -98,15 +98,19 @@ def main(params=None):
 
 if __name__ == '__main__':
     params = {
-        'data_dir': 'path/to/fcmaps',
-        'labels_path': 'path/to/labels.csv',
-        'label_column': 'Group',
-        'model_type': 'resnet',
-        'epochs': 20,
-        'batch_size': 16,
-        'lr': 1e-4,
-        'weight_decay': 1e-5,
-        'n_folds': 10,
-        'checkpoints_dir': 'checkpoints'
+    'data_dir_augmented': '/data/users/etosato/ANM_Verona/data/FCmaps_augmented_processed',
+    'data_dir': '/data/users/etosato/ANM_Verona/data/FC_maps',
+    'labels_path': '/data/users/etosato/ANM_Verona/data/labels.csv',
+    'label_column': 'Group',
+    'group1': 'ADNI',
+    'group2': 'PSP',
+    'model_type': 'resnet',
+    'epochs': 2,
+    'batch_size': 4,
+    'lr': 1e-4,
+    'weight_decay': 1e-5,
+    'n_folds': 2,
+    'checkpoints_dir': '/data/users/etosato/ANM_Verona/src/cnn/checkpoints'
     }
+
     main(params)

@@ -4,9 +4,6 @@ import matplotlib.pyplot as plt
 
 
 def train(model, train_loader, criterion, optimizer, device):
-    """
-    Perform one full training epoch over the training dataset.
-    """
     model.train()  # Set the model to training mode
     running_loss = 0.0  # Track cumulative loss
 
@@ -29,9 +26,6 @@ def train(model, train_loader, criterion, optimizer, device):
     return train_loss
 
 def validate(model, val_loader, criterion, device):
-    """
-    Evaluate the model on the validation set.
-    """
     model.eval()  # Set the model to evaluation mode
     running_loss = 0.0
     correct = 0  # Count of correct predictions

@@ -8,10 +8,8 @@ import numpy as np
 import json
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader
-from datetime import datetime
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-
 from datasets import FCDataset, AugmentedFCDataset
 from models import ResNet3D, DenseNet3D
 from train import train, validate
@@ -55,13 +53,18 @@ class CNNGridSearch:
         train_losses, val_losses, val_accuracies = [], [], []
 
         for epoch in range(params['epochs']):
+            # Training and validation step
             train_loss = train(model, train_loader, criterion, optimizer, self.device)
             val_loss, val_acc = validate(model, val_loader, criterion, self.device)
 
+            print( f"Epoch {epoch + 1}/{params['epochs']} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_accuracy:.4f}")
+
+            # Store losses and accuracy for later analysis
             train_losses.append(train_loss)
             val_losses.append(val_loss)
             val_accuracies.append(val_acc)
 
+            # Save best epoch in a checkpoint based on validation accuracy
             if val_acc > best_acc:
                 best_acc = val_acc
                 best_epoch = epoch
@@ -72,7 +75,7 @@ class CNNGridSearch:
             'val_accuracies': val_accuracies,
             'best_accuracy': best_acc,
             'best_epoch': best_epoch
-        }, model
+        }
 
     def get_optimizer(self, name, parameters, lr, weight_decay):
         if name == 'adam':

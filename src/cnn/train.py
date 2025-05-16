@@ -45,10 +45,6 @@ def validate(model, val_loader, criterion, device):
     val_accuracy = correct / len(val_loader.dataset)  # Compute accuracy
     return val_loss, val_accuracy
 
-
-def save_best_model(model, path):
-    torch.save(model.state_dict(), path)
-
 def plot_losses(train_losses, val_losses, val_accuracies=None, save_path=None):
     plt.figure(figsize=(8, 5))
 

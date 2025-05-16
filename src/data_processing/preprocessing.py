@@ -5,16 +5,10 @@ import nibabel as nib
 import argparse
 from tqdm import tqdm
 
-# --- Define argparse globally ---
-parser = argparse.ArgumentParser(description="Preprocess FC maps with masking, thresholding and optional normalization.")
-parser.add_argument('--input_dir', type=str, required=True, help='Path to input folder containing .nii.gz files.')
-parser.add_argument('--output_dir', type=str, required=True, help='Path where .npy processed files will be saved.')
-parser.add_argument('--mask_path', type=str, required=True, help='Path to GM mask .nii or .nii.gz file.')
-parser.add_argument('--threshold', type=float, default=0.2, help='Threshold to apply to voxel values.')
-parser.add_argument('--augmented', action='store_true', help='Flag indicating if data is organized with subfolders per subject.')
-parser.add_argument('--normalization', action='store_true', help='Apply MinMax normalization on non-zero voxels.')
 
-# --- Function that lists all .nii.gz files from a directory ---
+# ------------------------------------------------------------
+# Function that lists all .nii.gz files from a directory
+# ------------------------------------------------------------
 def list_data(input_dir, augmented=False):
     if augmented:
         files_path = sorted(glob.glob(os.path.join(input_dir, '*', '*.nii.gz')))
@@ -23,7 +17,9 @@ def list_data(input_dir, augmented=False):
 
     return files_path
 
-# --- Function for preprocessing the data: loading, thresholding, masking and saving ---
+# ------------------------------------------------------------
+# Function for preprocessing the data: loading, thresholding, masking and saving
+# ------------------------------------------------------------
 def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2,  augmented=False, normalization=None):
     os.makedirs(output_dir, exist_ok=True)
 
@@ -75,8 +71,15 @@ def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2,  augmented=
             continue
 
 
-# --- Main block ---
+# Main block
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Preprocess FC maps with masking, thresholding and optional normalization.")
+    parser.add_argument('--input_dir', type=str, required=True, help='Path to input folder containing .nii.gz files.')
+    parser.add_argument('--output_dir', type=str, required=True, help='Path where .npy processed files will be saved.')
+    parser.add_argument('--mask_path', type=str, required=True, help='Path to GM mask .nii or .nii.gz file.')
+    parser.add_argument('--threshold', type=float, default=0.2, help='Threshold to apply to voxel values.')
+    parser.add_argument('--augmented', action='store_true',help='Flag indicating if data is organized with subfolders per subject.')
+    parser.add_argument('--normalization', action='store_true', help='Apply MinMax normalization on non-zero voxels.')
     args = parser.parse_args()
 
     # List all files

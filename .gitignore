@@ -13,4 +13,4 @@ data/
 .idea/
 
 # Ignore images
-output_files/
+output/

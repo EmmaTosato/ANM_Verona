@@ -19,19 +19,19 @@ parser.add_argument("--subset_size", type=int, default=17)
 parser.add_argument("--index", type=int, required=True)
 args = parser.parse_args()
 
-# --- Read HCP list ---
+# Read HCP list
 with open(args.hcp_list, "r") as f:
     hcp_pool = [line.strip() for line in f if line.strip()]
 
-# --- Ensure reproducibility ---
+# Ensure reproducibility
 random.seed(42)
 
-# --- Check: enough HCPs to create disjoint subsets ---
+# Check: enough HCPs to create disjoint subsets
 total_needed = args.n_augmentations * args.subset_size
 if len(hcp_pool) < total_needed:
     raise ValueError(f"Not enough HCPs ({len(hcp_pool)}) for {args.n_augmentations} disjoint subsets of size {args.subset_size}.")
 
-# --- Generate disjoint HCP subsets ---
+# Generate disjoint HCP subsets
 shuffled_hcp = random.sample(hcp_pool, total_needed)
 hcp_subsets = [
     shuffled_hcp[i * args.subset_size : (i + 1) * args.subset_size]
@@ -43,12 +43,12 @@ flat_list = [hcp for subset in hcp_subsets for hcp in subset]
 if len(flat_list) != len(set(flat_list)):
     raise ValueError("HCP subsets are not disjoint!")
 
-# --- Define subject paths ---
+# Define subject paths
 subject_dir = os.path.join(args.dataset_dir, args.subject_id)
 subject_outdir = os.path.join(args.output_dir, args.subject_id)
 os.makedirs(subject_outdir, exist_ok=True)
 
-# --- Prepare CSV writer ---
+# Prepare CSV writer
 csv_exists = os.path.exists(args.csv_out)
 with open(args.csv_out, "a", newline="") as csvfile:
     writer = csv.writer(csvfile)
@@ -57,7 +57,7 @@ with open(args.csv_out, "a", newline="") as csvfile:
     if not csv_exists:
         writer.writerow(["subject", "augmentation", "hcp_subset", "missing_hcps"])
 
-    # --- Begin processing this subject ---
+    # Begin processing this subject
     start_time = time.time()
 
     # Loop over each augmentation

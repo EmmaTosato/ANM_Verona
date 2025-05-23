@@ -24,16 +24,14 @@ def run_clustering(x_umap):
         "K-Means": labels_km
     }
 
-# ---------------------------
+# ---------------------------------------
 # Plot clustering results vs group labels
-# ---------------------------
-def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column,save_path, title_prefix, plot_flag=True):
+# ---------------------------------------
+def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column,save_path, title_prefix, margin = 1.5, plot_flag=True):
 
     n = len(labels_dictionary)
     n_cols = 2
     n_rows = n
-
-    margin = 1.5
 
     x_min, x_max = x_umap[:, 0].min() - margin, x_umap[:, 0].max() + margin
     y_min, y_max = x_umap[:, 1].min() - margin, x_umap[:, 1].max() + margin
@@ -79,6 +77,9 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column,save_path, t
 
     plt.close()
 
+
+
+
 # ---------------------------
 # Main function
 # ---------------------------
@@ -108,6 +109,6 @@ def main(df_masked, df_meta, save_path, title_umap, title_cluster, plot_flag=Tru
 
     # Plot and save clusters
     if plot_flag or save_path:
-        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['group'],save_path, title_cluster, plot_flag=plot_flag)
+        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['group'],save_path, title_cluster, margin=1.5, plot_flag =plot_flag)
 
     return labeling_umap, x_umap

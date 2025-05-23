@@ -17,9 +17,9 @@ def list_data(input_dir, augmented=False):
 
     return files_path
 
-# ------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Function for preprocessing the data: loading, thresholding, masking and saving
-# ------------------------------------------------------------
+# ------------------------------------------------------------------------------
 def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2,  augmented=False, normalization=None):
     os.makedirs(output_dir, exist_ok=True)
 

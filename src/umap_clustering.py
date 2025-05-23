@@ -6,6 +6,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import hdbscan
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from sklearn.mixture import GaussianMixture
 
 from umap_run import x_features_return, run_umap
 
@@ -78,6 +80,9 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column,save_path, t
         plt.show()
 
     plt.close()
+
+
+
 
 # ---------------------------
 # Main function

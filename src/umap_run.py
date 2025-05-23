@@ -20,9 +20,9 @@ def x_features_return(df_voxel, df_labels):
 
     return dataframe_merge, x
 
-# ---------------------------
+# --------------------------------------
 # Run UMAP and optionally save/show plot
-# ---------------------------
+# --------------------------------------
 def run_umap(x_input, plot_flag=True, save_path=None, title="UMAP_Embedding"):
     reducer = umap.UMAP(
         n_neighbors=15, n_components=2, metric='euclidean', n_epochs=1000,

@@ -22,9 +22,14 @@ def build_design_matrix(df_merged, x_umap, covariates=None):
 # Fit OLS regression model
 # ------------------------------------------------------------
 def fit_ols_model(input_data, target):
+    # Input and target
     input_constants = sm.add_constant(input_data)
     target = target.astype(float)
+
+    # Fit OLS model
     model_ols = sm.OLS(target, input_constants).fit()
+
+    # Predictions and residuals
     predictions = model_ols.predict(input_constants)
     residuals = target - predictions
     return model_ols, predictions, residuals
@@ -45,6 +50,27 @@ def compute_rmse_per_subject(df_merged, y_pred, residuals):
     ).round(2).sort_values('Mean_RMSE', ascending=False)
 
     return subject_errors, group_rmse_stats
+
+# ------------------------------------------------------------
+# Compute Shuffling Regression
+# ------------------------------------------------------------
+def shuffling_regression(input_data, target, n_iterations=100):
+    # Fit the model with the true y
+    model_real = sm.OLS(target, input_data).fit()
+    r2_real = model_real.rsquared
+
+    # Perform shuffling
+    r2_shuffled = []
+    for _ in range(n_iterations):
+        y_shuffled = target.sample(frac=1, replace=False).reset_index(drop=True)
+        model_shuffled = sm.OLS(y_shuffled, input_data).fit()
+        r2_shuffled.append(model_shuffled.rsquared)
+
+    # Compute empirical p-value
+    p_value = np.mean([r >= r2_real for r in r2_shuffled])
+
+    return r2_real, r2_shuffled, p_value
+
 
 # ------------------------------------------------------------
 # Plot diagnostics: True vs Predicted and Residuals vs Fitted
@@ -106,6 +132,7 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
                     y_log_transform=False, plot_flag=True, save_path=None, title_prefix="OLS"):
     # Merge voxel and metadata
     df_merged, x = x_features_return(df_masked, df_meta)
+
     # Target variable
     y = df_merged[target_variable]
 
@@ -124,6 +151,9 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
     # Statistics
     subject_errors, group_rmse_stats = compute_rmse_per_subject(df_merged, y_pred, residuals)
 
+    # Shuffling regression
+    r2_real, r2_shuffled, p_value = shuffling_regression(x_umap, y)
+
     # Plot diagnostics if requested
     if plot_flag or save_path:
         plot_ols_diagnostics(y, y_pred, residuals, title=title_prefix, save_path=save_path, plot_flag=plot_flag)
@@ -140,5 +170,10 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
 
     print("\nMAE:", round(mean_absolute_error(y, y_pred), 4),
           "RMSE:", round(np.sqrt(mean_squared_error(y, y_pred)), 4))
+
+    print("\nShuffling Regression")
+    print("R² real", round(r2_real, 4))
+    print(f"R² shuffled: {np.mean(r2_shuffled):.4f}")
+    print(f"Empirical p-value: {p_value:.4f}")
 
     return model, y_pred, residuals, subject_errors, group_rmse_stats

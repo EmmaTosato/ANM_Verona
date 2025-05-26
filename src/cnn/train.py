@@ -59,9 +59,8 @@ def validate(model, val_loader, criterion, device):
     val_accuracy = correct / len(val_loader.dataset)  # Compute accuracy
     return val_loss, val_accuracy
 
-def plot_losses(train_losses, val_losses, val_accuracies=None, save_path=None):
+def plot_losses(train_losses, val_losses, val_accuracies=None, save_path=None, title = None):
     plt.figure(figsize=(8, 5))
-
     # Plot training and validation loss
     plt.plot(train_losses, label='Train Loss', marker='o', color='blue')
     plt.plot(val_losses, label='Val Loss', marker='s', color='orange')
@@ -71,9 +70,8 @@ def plot_losses(train_losses, val_losses, val_accuracies=None, save_path=None):
         plt.plot(val_accuracies, label='Val Accuracy', marker='^', color = 'green')
     plt.xlabel('Epoch')
     plt.ylabel('Value')
-    plt.title('Training Curves')
+    plt.title(title)
     plt.legend()
     plt.grid(True)
-    if save_path:
-        plt.savefig(save_path)
-        plt.close()
+    plt.savefig(save_path)
+    plt.close()

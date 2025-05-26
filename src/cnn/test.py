@@ -1,6 +1,10 @@
+#test.py
+
 import torch
 import numpy as np
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 def evaluate(model, loader, device):
     model.eval()  # Set the model to evaluation mode (no dropout, etc.)
@@ -39,6 +43,17 @@ def compute_metrics(y_true, y_pred):
         "confusion_matrix": conf_matrix
     }
     return metrics
+
+def plot_confusion_matrix(conf_matrix, class_names, save_path=None, title= None):
+    plt.figure(figsize=(6, 5))
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False,
+                xticklabels=class_names, yticklabels=class_names)
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
 
 
 def print_metrics(metrics):

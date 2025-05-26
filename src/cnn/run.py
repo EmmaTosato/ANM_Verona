@@ -10,8 +10,9 @@ import matplotlib.pyplot as plt
 from datasets import FCDataset, AugmentedFCDataset
 from models import ResNet3D, DenseNet3D
 from train import train, validate, plot_losses
-from test import evaluate, compute_metrics, print_metrics
+from test import evaluate, compute_metrics, print_metrics, plot_confusion_matrix
 
+# TODO: reproducibility
 
 # Trains the model and evaluates on validation set at each epoch.
 def run_epochs(model, train_loader, val_loader, criterion, optimizer, params):
@@ -31,7 +32,7 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params):
         val_losses.append(val_loss)
         val_accuracies.append(val_accuracy)
 
-        # TODO: capire come salvare i best valori --> vedi Notion
+        # TODO: capire come salvare loss and accuracy
         # Save best epoch in a checkpoint based on validation accuracy
         if val_accuracy > best_accuracy:
             best_accuracy = val_accuracy
@@ -50,10 +51,11 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params):
     print(f"\nBest model saved with val accuracy {best_accuracy:.4f} at epoch {best_epoch}")
 
     # Save learning curves
-    if params['plot_path']:
-        plot_losses(train_losses, val_losses, val_accuracies)
-        plt.savefig(params['plot_path'])
-        plt.close()
+    if params['plot']:
+        title = f"Training curves - {params['group1'].upper()} vs {params['group2'].upper()} ({params['model_type'].upper()})"
+        filename = f"{params['model_type']}_{params['group1']}_vs_{params['group2']}_loss.png"
+        save_path = os.path.join(params['plot_dir'], filename)
+        plot_losses(train_losses, val_losses, val_accuracies, save_path=save_path, title=title)
 
     return best_accuracy, best_train_loss, best_val_loss
 
@@ -70,29 +72,6 @@ def main_worker(params):
     train_df = df[df['split'] == 'train'].reset_index(drop=True)
     val_df = df[df['split'] == 'val'].reset_index(drop=True) if 'val' in df['split'].unique() else None
     test_df = df[df['split'] == 'test'].reset_index(drop=True)
-
-    # --- Evaluation mode ---
-    if params['evaluation_flag']:
-        # Prepare test dataloader
-        test_dataset = FCDataset(params['data_dir'], test_df, params['label_column'], task='classification')
-        test_loader = DataLoader(test_dataset, batch_size=params['batch_size'], shuffle=False)
-
-        # Load model and weights
-        if params['model_type'] == 'resnet':
-            model = ResNet3D(n_classes=2)
-        elif params['model_type'] == 'densenet':
-            model = DenseNet3D(n_classes=2)
-        else:
-            raise ValueError("Unsupported model type")
-        checkpoint = torch.load(params['checkpoint_path'], map_location=device)
-        model.load_state_dict(checkpoint['state_dict'] if 'state_dict' in checkpoint else checkpoint)
-        model.to(device)
-
-        # Run evaluation
-        y_true, y_pred = evaluate(model, test_loader, device)
-        metrics = compute_metrics(y_true, y_pred)
-        print_metrics(metrics)
-        return
 
     # --- Training with Cross Validation mode ---
     if params['crossval_flag']:
@@ -177,6 +156,37 @@ def main_worker(params):
 
         run_epochs(model, train_loader, val_loader, criterion, optimizer, params)
 
+    # --- Evaluation mode ---
+    if params['evaluation_flag']:
+        # Prepare test dataloader
+        test_dataset = FCDataset(params['data_dir'], test_df, params['label_column'], task='classification')
+        test_loader = DataLoader(test_dataset, batch_size=params['batch_size'], shuffle=False)
+
+        # Load model and weights
+        if params['model_type'] == 'resnet':
+            model = ResNet3D(n_classes=2)
+        elif params['model_type'] == 'densenet':
+            model = DenseNet3D(n_classes=2)
+        else:
+            raise ValueError("Unsupported model type")
+        checkpoint = torch.load(params['checkpoint_path'], map_location=device)
+        model.load_state_dict(checkpoint['state_dict'] if 'state_dict' in checkpoint else checkpoint)
+        model.to(device)
+
+        # Run evaluation
+        print("\n=== Evaluation on test set ===")
+        y_true, y_pred = evaluate(model, test_loader, device)
+        metrics = compute_metrics(y_true, y_pred)
+        print_metrics(metrics)
+        if params.get('plot'):
+            title = f"Confusion Matrix - {params['group1'].upper()} vs {params['group2'].upper()} ({params['model_type'].upper()})"
+            filename = f"{params['model_type']}_{params['group1']}_vs_{params['group2']}_conf_matrix.png"
+            save_path = os.path.join(params['plot_dir'], filename)
+            class_names = sorted(test_df[params['label_column']].unique())
+            plot_confusion_matrix(metrics['confusion_matrix'], class_names, save_path= save_path, title = title)
+
+        return
+
 
 if __name__ == '__main__':
     args = {
@@ -192,15 +202,16 @@ if __name__ == '__main__':
         'seed': 42,
 
         'checkpoints_dir': '/data/users/etosato/ANM_Verona/src/cnn/checkpoints',
-        'checkpoint_path': '/data/users/etosato/ANM_Verona/src/cnn/checkpoints/best_model.pt',
-        'plot_path': '/data/users/etosato/ANM_Verona/src/cnn/output/loss_curve.png',
+        'checkpoint_path': '/data/users/etosato/ANM_Verona/src/cnn/checkpoints/best_model_overall.pt',
+        'plot_dir': '/data/users/etosato/ANM_Verona/src/cnn/output',
 
         'split_csv': '/data/users/etosato/ANM_Verona/data/ADNI_PSP_splitted.csv',
         'group1': 'ADNI',
         'group2': 'PSP',
 
         'crossval_flag': True,
-        'evaluation_flag': False
+        'evaluation_flag': True,
+        'plot': True
     }
 
     main_worker(args)

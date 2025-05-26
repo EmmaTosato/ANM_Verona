@@ -2,6 +2,7 @@
 
 import json
 import os
+import pandas as pd
 from itertools import product
 from run import main_worker
 
@@ -23,19 +24,17 @@ fixed_params = {
     'seed': 42,
     'crossval_flag': True,
     'evaluation_flag': False,
-    'plot': False,
+    'plot': True,
     'split_csv': '/data/users/etosato/ANM_Verona/data/ADNI_PSP_splitted.csv',
     'group1': 'ADNI',
-    'group2': 'PSP',
-    'checkpoints_dir': '/data/users/etosato/ANM_Verona/src/cnn/checkpoints',
-    'plot_dir': '/data/users/etosato/ANM_Verona/src/cnn/output'
+    'group2': 'PSP'
 }
 
-# Output path for results
-output_json = os.path.join(fixed_params['plot_dir'], 'grid_results.json')
-os.makedirs(fixed_params['plot_dir'], exist_ok=True)
+# Folder where each config's results will be saved
+tuning_root = '/data/users/etosato/ANM_Verona/src/cnn/tuning_results'
+os.makedirs(tuning_root, exist_ok=True)
 
-# Convert grid to list of combinations
+# Prepare combinations
 keys = list(grid.keys())
 combinations = list(product(*grid.values()))
 
@@ -44,25 +43,33 @@ all_results = []
 
 # Iterate over each combination
 for i, combo in enumerate(combinations):
-    print(f"\nRunning combination {i+1}/{len(combinations)}")
+    config_name = f"config{i+1}"
+    print(f"\nRunning {config_name}...")
 
-    # Create param dictionary
+    # Build specific parameter set
     combo_params = dict(zip(keys, combo))
     params = {**fixed_params, **combo_params}
 
-    # Set checkpoint path for this run
-    ckpt_name = f"{params['model_type']}_lr{params['lr']}_bs{params['batch_size']}_wd{params['weight_decay']}".replace('.', '')
-    params['checkpoint_path'] = os.path.join(params['checkpoints_dir'], f"{ckpt_name}_best_model.pt")
+    # Create output directory for this configuration
+    config_dir = os.path.join(tuning_root, config_name)
+    os.makedirs(config_dir, exist_ok=True)
 
-    # Run training with CV
+    # Override save paths
+    params['checkpoints_dir'] = config_dir
+    params['plot_dir'] = config_dir
+    params['checkpoint_path'] = os.path.join(config_dir, "best_model.pt")
+    params['fine_tuning_flag'] = True
+
+    # Run training
     result = main_worker(params)
 
-    # Attach hyperparameters to results
+    # Add metadata to results
     result.update(combo_params)
+    result['config'] = config_name
     all_results.append(result)
 
-# Save all results to JSON
-with open(output_json, 'w') as f:
-    json.dump(all_results, f, indent=4)
+# Save results to CSV
+results_df = pd.DataFrame(all_results)
+results_df.to_csv(os.path.join(tuning_root, 'grid_results.csv'), index=False)
 
-print(f"\nSaved all results to {output_json}")
+print(f"\nSaved all results to: {os.path.join(tuning_root, 'grid_results.csv')}")

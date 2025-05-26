@@ -11,6 +11,7 @@ from datasets import FCDataset, AugmentedFCDataset
 from models import ResNet3D, DenseNet3D
 from train import train, validate, plot_losses
 from test import evaluate, compute_metrics, print_metrics, plot_confusion_matrix
+import json
 
 # TODO: reproducibility
 
@@ -189,29 +190,8 @@ def main_worker(params):
 
 
 if __name__ == '__main__':
-    args = {
-        'data_dir_augmented': '/data/users/etosato/ANM_Verona/data/FCmaps_augmented_processed',
-        'data_dir': '/data/users/etosato/ANM_Verona/data/FC_maps_processsed',
-        'label_column': 'Group',
-        'model_type': 'resnet',
-        'epochs': 2,
-        'batch_size': 4,
-        'lr': 1e-4,
-        'weight_decay': 1e-5,
-        'n_folds': 2,
-        'seed': 42,
-
-        'checkpoints_dir': '/data/users/etosato/ANM_Verona/src/cnn/checkpoints',
-        'checkpoint_path': '/data/users/etosato/ANM_Verona/src/cnn/checkpoints/best_model_overall.pt',
-        'plot_dir': '/data/users/etosato/ANM_Verona/src/cnn/output',
-
-        'split_csv': '/data/users/etosato/ANM_Verona/data/ADNI_PSP_splitted.csv',
-        'group1': 'ADNI',
-        'group2': 'PSP',
-
-        'crossval_flag': True,
-        'evaluation_flag': True,
-        'plot': True,
-    }
+    with open("parameters/config.json", "r") as f:
+        args = json.load(f)
 
     main_worker(args)
+

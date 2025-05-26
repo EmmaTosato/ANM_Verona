@@ -1,0 +1,17 @@
+{
+    "data_dir_augmented": "/data/users/etosato/ANM_Verona/data/FCmaps_augmented_processed",
+    "data_dir": "/data/users/etosato/ANM_Verona/data/FC_maps_processsed",
+    "label_column": "Group",
+    "epochs": 2,
+    "n_folds": 2,
+    "seed": 42,
+    "checkpoints_dir": "/data/users/etosato/ANM_Verona/src/cnn/tuning_results",
+    "checkpoint_path": "/data/users/etosato/ANM_Verona/src/cnn/tuning_results",
+    "plot_dir": "/data/users/etosato/ANM_Verona/src/cnn/tuning_results",
+    "split_csv": "/data/users/etosato/ANM_Verona/data/ADNI_PSP_splitted.csv",
+    "group1": "ADNI",
+    "group2": "PSP",
+    "crossval_flag": true,
+    "evaluation_flag": false,
+    "plot": true
+}

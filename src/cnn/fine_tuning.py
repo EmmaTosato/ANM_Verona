@@ -1,5 +1,6 @@
 # fine_tuning.py
 
+# TODO: controlla che salvi tutto giusto
 import json
 import os
 import pandas as pd
@@ -7,28 +8,13 @@ from itertools import product
 from run import main_worker
 
 # Define the hyperparameter grid
-grid = {
-    'lr': [1e-4, 1e-3],
-    'batch_size': [4, 8],
-    'weight_decay': [1e-5, 1e-4],
-    'model_type': ['resnet', 'densenet']
-}
+with open("parameters/grid.json", "r") as f:
+    grid = json.load(f)
 
 # Fixed parameters
-fixed_params = {
-    'data_dir_augmented': '/data/users/etosato/ANM_Verona/data/FCmaps_augmented_processed',
-    'data_dir': '/data/users/etosato/ANM_Verona/data/FC_maps_processsed',
-    'label_column': 'Group',
-    'epochs': 2,
-    'n_folds': 2,
-    'seed': 42,
-    'crossval_flag': True,
-    'evaluation_flag': False,
-    'plot': True,
-    'split_csv': '/data/users/etosato/ANM_Verona/data/ADNI_PSP_splitted.csv',
-    'group1': 'ADNI',
-    'group2': 'PSP'
-}
+with open("parameters/fixed_finetuning.json", "r") as f:
+    fixed_params = json.load(f)
+
 
 # Folder where each config's results will be saved
 tuning_root = '/data/users/etosato/ANM_Verona/src/cnn/tuning_results'
@@ -54,11 +40,8 @@ for i, combo in enumerate(combinations):
     config_dir = os.path.join(tuning_root, config_name)
     os.makedirs(config_dir, exist_ok=True)
 
-    # Override save paths
-    params['checkpoints_dir'] = config_dir
-    params['plot_dir'] = config_dir
+    # Create folder
     params['checkpoint_path'] = os.path.join(config_dir, "best_model.pt")
-    params['fine_tuning_flag'] = True
 
     # Run training
     result = main_worker(params)

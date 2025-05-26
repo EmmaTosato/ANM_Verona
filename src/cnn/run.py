@@ -141,20 +141,18 @@ def main_worker(params):
         # Save the best model globally
         shutil.copy(best_fold_info['model_path'], os.path.join(params['checkpoints_dir'], "best_model_overall.pt"))
 
-    else:
-        # Prepare datasets
-        train_dataset = AugmentedFCDataset(params['data_dir_augmented'], train_df, params['label_column'], task='classification')
-        val_dataset = FCDataset(params['data_dir'], val_df, params['label_column'], task='classification') if val_df is not None else None
+        # Return results for fine-tuning
+        return {
+            'best_fold': best_fold_info['fold'],
+            'best_accuracy': best_fold_info['accuracy'],
+            'avg_accuracy': float(np.mean(fold_accuracies)),
+            'avg_train_loss': float(np.mean(fold_train_losses)),
+            'avg_val_loss': float(np.mean(fold_val_losses))
+        }
 
-        train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=params['batch_size'], shuffle=False) if val_df is not None else None
+    #else:
+        # Possible implementation without cv
 
-        # Model and training
-        model = ResNet3D(n_classes=2).to(device) if params['model_type'] == 'resnet' else DenseNet3D(n_classes=2).to(device)
-        criterion = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
-
-        run_epochs(model, train_loader, val_loader, criterion, optimizer, params)
 
     # --- Evaluation mode ---
     if params['evaluation_flag']:
@@ -185,7 +183,9 @@ def main_worker(params):
             class_names = sorted(test_df[params['label_column']].unique())
             plot_confusion_matrix(metrics['confusion_matrix'], class_names, save_path= save_path, title = title)
 
-        return
+        return None
+
+    return None
 
 
 if __name__ == '__main__':
@@ -211,7 +211,7 @@ if __name__ == '__main__':
 
         'crossval_flag': True,
         'evaluation_flag': True,
-        'plot': True
+        'plot': True,
     }
 
     main_worker(args)

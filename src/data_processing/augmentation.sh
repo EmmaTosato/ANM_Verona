@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=10
 #SBATCH --mem=32G
 #SBATCH -p brains
-#SBATCH --output=/data/lorenzo/ANM_Verona/logsEmma/augment_%j.out
-#SBATCH --error=/data/lorenzo/ANM_Verona/logsEmma/augment_%j.err
+#SBATCH --output=/data/etosato/ANM_Verona/logs/augment_%j.out
+#SBATCH --error=/data/etosato/ANM_Verona/logs/augment_%j.err
 
 # Variabili
 LISTA_HCP="/data/lorenzo/ANM_Verona/lista_HCP"

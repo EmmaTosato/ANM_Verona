@@ -113,7 +113,10 @@ with open(args.csv_out, "a", newline="") as csvfile:
             ",".join(missing_hcps) if missing_hcps else ""
         ])
 
-    # Print every 10 subjectes
+    # Print every subject
     end_time = time.time()
     elapsed = round(end_time - start_time, 2)
     print(f"\nProcessed subject: {args.subject_id} with time {elapsed}\n")
+
+
+

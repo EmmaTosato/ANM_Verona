@@ -1,20 +1,25 @@
 {
     "data_dir_augmented": "/data/users/etosato/ANM_Verona/data/FCmaps_augmented_processed",
     "data_dir": "/data/users/etosato/ANM_Verona/data/FC_maps_processsed",
+    "split_csv": "/data/users/etosato/ANM_Verona/data/ADNI_PSP_splitted.csv",
+
+    "checkpoints_dir": "/data/users/etosato/ANM_Verona/src/cnn/checkpoints",
+    "checkpoint_path": "/data/users/etosato/ANM_Verona/src/cnn/checkpoints/best_model_overall.pt",
+    "plot_dir": "/data/users/etosato/ANM_Verona/src/cnn/output",
+
     "label_column": "Group",
     "model_type": "resnet",
+
     "epochs": 2,
     "batch_size": 4,
     "lr": 1e-4,
     "weight_decay": 1e-5,
     "n_folds": 2,
     "seed": 42,
-    "checkpoints_dir": "/data/users/etosato/ANM_Verona/src/cnn/checkpoints",
-    "checkpoint_path": "/data/users/etosato/ANM_Verona/src/cnn/checkpoints/best_model_overall.pt",
-    "plot_dir": "/data/users/etosato/ANM_Verona/src/cnn/output",
-    "split_csv": "/data/users/etosato/ANM_Verona/data/ADNI_PSP_splitted.csv",
+
     "group1": "ADNI",
     "group2": "PSP",
+
     "crossval_flag": true,
     "evaluation_flag": true,
     "plot": true

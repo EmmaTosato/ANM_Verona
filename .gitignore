@@ -17,3 +17,6 @@ output/
 
 # Ignore checkpoints
 checkpoints/
+
+# Ignore tuning results
+tuning_results/

@@ -13,4 +13,7 @@ data/
 .idea/
 
 # Ignore images
-output
+output/
+
+# Ignore logs
+logs/

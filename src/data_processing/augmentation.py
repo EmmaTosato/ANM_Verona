@@ -74,7 +74,7 @@ with open(args.csv_out, "a", newline="") as csvfile:
 
         if len(files_to_merge) < args.subset_size:
             print(f"[ERROR] Augmentation {i} NOT succeed: only {len(files_to_merge)}/{args.subset_size} files found")
-            #continue
+            continue
 
         merged_file = os.path.join(subject_outdir, f"{args.subject_id}.merged.aug{i}.nii.gz")
         mean_file = os.path.join(subject_outdir, f"{args.subject_id}.FDC.aug{i}.nii.gz")

@@ -11,8 +11,8 @@
 # Variabili
 LISTA_HCP="/data/lorenzo/ANM_Verona/lista_HCP"
 DATASET_DIR="/data/lorenzo/ANM_Verona/dataset/"
-OUTPUT_DIR="/data/etosato/ANM_Verona/FCmaps_augmented/"
-TRACKING_CSV="/data/etosato/ANM_Verona/aug_tracking.csv"
+OUTPUT_DIR="/data/etosato/ANM_Verona/data/FCmaps_augmented/"
+TRACKING_CSV="/data/etosato/ANM_Verona/data/aug_tracking.csv"
 N_AUG=10
 SUBSET_SIZE=17
 COUNT=0

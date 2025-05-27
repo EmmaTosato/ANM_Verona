@@ -53,5 +53,7 @@ columns = ['config'] + [col for col in results_df.columns if col != 'config']
 results_df = results_df[columns]
 results_df.to_csv(os.path.join(fixed_params['tuning_results_dir'], 'grid_results.csv'), index=False)
 
-print(f"\n\n------------------------------------------------------------------------")
-print(f"\nFine tuning completed")
+print(f"\n\n")
+print(f"----------------------------------------------------------------")
+print(f"Fine tuning completed")
+print(f"----------------------------------------------------------------")

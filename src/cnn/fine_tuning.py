@@ -1,30 +1,21 @@
 # fine_tuning.py
 
-# TODO: controlla che salvi tutto giusto
 import json
 import os
 import pandas as pd
 from itertools import product
 from run import main_worker
 
-# Define the hyperparameter grid
-with open("parameters/grid.json", "r") as f:
+# Define the hyperparameter and parameters
+with open("/data/users/etosato/ANM_Verona/src/cnn/parameters/grid.json", "r") as f:
     grid = json.load(f)
 
-# Fixed parameters
-with open("parameters/fixed_finetuning.json", "r") as f:
+with open("/data/users/etosato/ANM_Verona/src/cnn/parameters/config_tuning.json", "r") as f:
     fixed_params = json.load(f)
 
-
-# Folder where each config's results will be saved
-tuning_root = '/data/users/etosato/ANM_Verona/src/cnn/tuning_results'
-os.makedirs(tuning_root, exist_ok=True)
-
-# Prepare combinations
+# Prepare combinations and storage for results
 keys = list(grid.keys())
 combinations = list(product(*grid.values()))
-
-# Storage for results
 all_results = []
 
 # Iterate over each combination
@@ -37,22 +28,30 @@ for i, combo in enumerate(combinations):
     params = {**fixed_params, **combo_params}
 
     # Create output directory for this configuration
-    config_dir = os.path.join(tuning_root, config_name)
+    config_dir = os.path.join(fixed_params['tuning_results_dir'], config_name)
     os.makedirs(config_dir, exist_ok=True)
 
     # Create folder
-    params['checkpoint_path'] = os.path.join(config_dir, "best_model.pt")
+    params['checkpoint_path'] = os.path.join(config_dir, "best_model_overall.pt")
+    params['checkpoints_dir'] = config_dir
+    params['plot_dir'] = config_dir
 
     # Run training
     result = main_worker(params)
 
     # Add metadata to results
-    result.update(combo_params)
+    with open(os.path.join(config_dir, "config.json"), "w") as f:
+        json.dump(combo_params, f, indent=4)
     result['config'] = config_name
     all_results.append(result)
 
 # Save results to CSV
 results_df = pd.DataFrame(all_results)
-results_df.to_csv(os.path.join(tuning_root, 'grid_results.csv'), index=False)
 
-print(f"\nSaved all results to: {os.path.join(tuning_root, 'grid_results.csv')}")
+# Reorder columns to put 'config' first
+columns = ['config'] + [col for col in results_df.columns if col != 'config']
+results_df = results_df[columns]
+results_df.to_csv(os.path.join(fixed_params['tuning_results_dir'], 'grid_results.csv'), index=False)
+
+print(f"\n\n------------------------------------------------------------------------")
+print(f"\nFine tuning completed")

@@ -106,14 +106,20 @@ def main_worker(params):
 
             # Model, loss, optimizer
             if params['model_type'] == 'resnet':
-                model = ResNet3D(n_classes=2).to(device)
+                model = ResNet3D(n_classes=2, in_channels=params.get('in_channels', 1)).to(device)
             elif params['model_type'] == 'densenet':
-                model = DenseNet3D(n_classes=2).to(device)
+                model = DenseNet3D(n_classes=2, in_channels=params.get('in_channels', 1)).to(device)
             else:
                 raise ValueError("Unsupported model type")
 
             criterion = torch.nn.CrossEntropyLoss()
-            optimizer = torch.optim.Adam(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
+            if params['optimizer'] == 'adam':
+                optimizer = torch.optim.Adam(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
+            elif params['optimizer'] == 'sgd':
+                optimizer = torch.optim.SGD(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'],
+                                            momentum=params.get('momentum', 0.9))
+            else:
+                raise ValueError(f"Unsupported optimizer: {params['optimizer']}")
 
             # Set path for this fold’s best checkpoint
             params['checkpoint_path'] = os.path.join(params['checkpoints_dir'], f"best_model_fold{fold+1}.pt")

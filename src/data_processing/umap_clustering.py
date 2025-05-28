@@ -1,3 +1,5 @@
+# umap_clustering.py
+
 import os
 import warnings
 warnings.filterwarnings("ignore", message="n_jobs value 1 overridden to 1 by setting random_state")
@@ -10,6 +12,7 @@ from sklearn.metrics import silhouette_score
 from sklearn.mixture import GaussianMixture
 
 from umap_run import x_features_return, run_umap
+from clustering_evaluation import evaluate_kmeans, evaluate_gmm, evaluate_hdbscan, evaluate_consensus
 
 # ---------------------------
 # Run clustering algorithms
@@ -85,8 +88,8 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column,save_path, t
 # ---------------------------
 # Main function
 # ---------------------------
-def main(df_masked, df_meta, save_path, title_umap, title_cluster, plot_flag=True):
-
+def main_clustering(df_masked, df_meta, save_path, title_umap, title_cluster, plot_flag=True, do_eval=False, eval_save_path=None):
+    # Check that the directory exist
     if save_path:
         os.makedirs(save_path, exist_ok=True)
 
@@ -99,6 +102,15 @@ def main(df_masked, df_meta, save_path, title_umap, title_cluster, plot_flag=Tru
     # Clustering
     labels_dict = run_clustering(x_umap)
 
+    # Evaluation of clustering
+    if do_eval:
+        print("\nEvaluating clustering algorithms...")
+        evaluate_kmeans(x_umap, save_path=eval_save_path, prefix=title_cluster, plot_flag=plot_flag)
+        evaluate_gmm(x_umap, save_path=eval_save_path, prefix=title_cluster, plot_flag=plot_flag)
+        evaluate_consensus(x_umap, save_path=eval_save_path, prefix=title_cluster, plot_flag=plot_flag)
+        print("\n")
+        evaluate_hdbscan(x_umap)
+
     # Collect results
     labeling_umap = pd.DataFrame({
         'labels_hdb': labels_dict['HDBSCAN'],
@@ -106,11 +118,19 @@ def main(df_masked, df_meta, save_path, title_umap, title_cluster, plot_flag=Tru
         'X1': x_umap[:, 0],
         'X2': x_umap[:, 1],
         'group': df_merged['Group'],
+        'gmm_label':df_merged['GMM_Label'],
         'subject_id': df_merged['ID']
     })
 
     # Plot and save clusters
     if plot_flag or save_path:
+        print("\nClustering results...")
         plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['group'],save_path, title_cluster, margin=1.5, plot_flag =plot_flag)
+
+        # Plotting also GMM label
+        title_cluster = "clustering_gm_02_mask_gmmLabel"
+        save_path = None
+        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['gmm_label'],save_path, title_cluster, margin=1.5, plot_flag =plot_flag)
+
 
     return labeling_umap, x_umap

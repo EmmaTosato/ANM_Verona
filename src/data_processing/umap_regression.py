@@ -1,7 +1,10 @@
+# umap_regression.py
+
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from umap_run import x_features_return, run_umap
+from processing_flat import remove_missing_values
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -130,6 +133,10 @@ def plot_actual_vs_predicted(target, predictions, title, save_path=None, plot_fl
 # ------------------------------------------------------------
 def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=None,
                     y_log_transform=False, plot_flag=True, save_path=None, title_prefix="OLS"):
+
+    # Remove subjects witout target
+    df_masked = remove_missing_values(df_masked, df_meta, target_variable)
+
     # Merge voxel and metadata
     df_merged, x = x_features_return(df_masked, df_meta)
 

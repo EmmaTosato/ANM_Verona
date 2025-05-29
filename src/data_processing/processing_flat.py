@@ -3,12 +3,6 @@ import pandas as pd
 import numpy as np
 import nibabel as nib
 
-def remove_missing_values(raw_df, df_meta, target_col):
-    # Remove subjects without target values
-    subjects_nan = df_meta[df_meta[target_col].isna()]['ID'].tolist()
-    df = raw_df[~raw_df['ID'].isin(subjects_nan)].reset_index(drop=True)
-    return df
-
 
 def apply_threshold(dataframe, threshold):
     # Apply a threshold to voxel data in a DataFrame.
@@ -59,30 +53,27 @@ def summarize_voxel_data(df_masked, threshold=None):
     return summary
 
 
-def main_processing_flat(raw_df, df_meta, target_col, gm_mask_path, harvard_mask_path, thresholds=[0.1, 0.2], do_eda=False):
+def main_processing_flat(df, df_meta, target_col, gm_mask_path, harvard_mask_path, thresholds=[0.1, 0.2], do_eda=False):
     # Align metadata to raw_df
-    df_meta = df_meta.set_index('ID').loc[raw_df['ID']].reset_index()
-    assert all(raw_df['ID'] == df_meta['ID']), "Mismatch between ID of df and df_meta_ordered"
-    print("The IDs are now perfectly aligned")
-
-    # Remove subjects without target
-    df_clean = remove_missing_values(raw_df, df_meta, target_col)
+    df_meta = df_meta.set_index('ID').loc[df['ID']].reset_index()
+    assert all(df['ID'] == df_meta['ID']), "Mismatch between ID of df and df_meta_ordered"
+    print("The IDs are now perfectly aligned...")
 
     # Apply thresholding
-    df_thr_01 = apply_threshold(df_clean, threshold=0.1)
-    df_thr_02 = apply_threshold(df_clean, threshold=0.2)
-    print("Thresholds applied")
+    df_thr_01 = apply_threshold(df, threshold=0.1)
+    df_thr_02 = apply_threshold(df, threshold=0.2)
+    print("Thresholds applied...")
 
     # GM masking
-    df_gm_masked = apply_mask(df_clean, gm_mask_path)
+    df_gm_masked = apply_mask(df, gm_mask_path)
     df_thr01_gm_masked = apply_mask(df_thr_01, gm_mask_path)
     df_thr02_gm_masked = apply_mask(df_thr_02, gm_mask_path)
 
     # Harvard masking
-    df_har_masked = apply_mask(df_clean, harvard_mask_path)
+    df_har_masked = apply_mask(df, harvard_mask_path)
     df_thr01_har_masked = apply_mask(df_thr_01, harvard_mask_path)
     df_thr02_har_masked = apply_mask(df_thr_02, harvard_mask_path)
-    print("Masks applied")
+    print("Masks applied...")
 
     # Collect all outputs
     outputs = {
@@ -106,6 +97,6 @@ def main_processing_flat(raw_df, df_meta, target_col, gm_mask_path, harvard_mask
             eda_list.append(summary)
         df_summary = pd.DataFrame(eda_list).set_index('Dataset')
 
-    print("Processing completed")
+    print("Processing completed!")
     return outputs, df_summary
 

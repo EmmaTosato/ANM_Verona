@@ -7,12 +7,13 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import hdbscan
+import numpy as np
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
-from sklearn.mixture import GaussianMixture
-
 from umap_run import x_features_return, run_umap
 from clustering_evaluation import evaluate_kmeans, evaluate_gmm, evaluate_hdbscan, evaluate_consensus
+
+np.random.seed(42)
+
 
 # ---------------------------
 # Run clustering algorithms
@@ -99,9 +100,6 @@ def main_clustering(df_masked, df_meta, save_path, title_umap, title_cluster, pl
     # Reduce dimensionality with UMAP
     x_umap = run_umap(x, plot_flag=True, save_path = save_path,title = title_umap )  # UMAP plotting is disabled
 
-    # Clustering
-    labels_dict = run_clustering(x_umap)
-
     # Evaluation of clustering
     if do_eval:
         print("\nEvaluating clustering algorithms...")
@@ -110,6 +108,9 @@ def main_clustering(df_masked, df_meta, save_path, title_umap, title_cluster, pl
         evaluate_consensus(x_umap, save_path=eval_save_path, prefix=title_cluster, plot_flag=plot_flag)
         print("\n")
         evaluate_hdbscan(x_umap)
+
+    # Clustering
+    labels_dict = run_clustering(x_umap)
 
     # Collect results
     labeling_umap = pd.DataFrame({

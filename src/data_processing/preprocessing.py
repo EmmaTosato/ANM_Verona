@@ -36,7 +36,8 @@ def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2,  augmented=
             #affine = img.affine
 
             # Threshold the data
-            data[data < threshold] = 0
+            if threshold is not None:
+                data[data < threshold] = 0
 
             # Masking
             data[~mask] = 0
@@ -77,7 +78,7 @@ if __name__ == "__main__":
     parser.add_argument('--input_dir', type=str, required=True, help='Path to input folder containing .nii.gz files.')
     parser.add_argument('--output_dir', type=str, required=True, help='Path where .npy processed files will be saved.')
     parser.add_argument('--mask_path', type=str, required=True, help='Path to GM mask .nii or .nii.gz file.')
-    parser.add_argument('--threshold', type=float, default=0.2, help='Threshold to apply to voxel values.')
+    parser.add_argument('--threshold', type=float, default=None,help='Optional threshold to apply to voxel values. Skip if not provided.')
     parser.add_argument('--augmented', action='store_true',help='Flag indicating if data is organized with subfolders per subject.')
     parser.add_argument('--normalization', action='store_true', help='Apply MinMax normalization on non-zero voxels.')
     args = parser.parse_args()

@@ -2,6 +2,9 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import umap
+import numpy as np
+
+np.random.seed(42)
 
 # ---------------------------
 # Merge voxel data with metadata
@@ -17,6 +20,9 @@ def x_features_return(df_voxel, df_labels):
     assert (dataframe_merge['ID'].values == df_voxel['ID'].values).all(), "Row order mismatch after merge"
 
     x = dataframe_merge.drop(columns=meta_columns)
+
+    print("Dataframe shape after merge:", dataframe_merge.shape)
+    print("Feature matrix shape:", x.shape)
 
     return dataframe_merge, x
 
@@ -45,7 +51,6 @@ def run_umap(x_input, plot_flag=True, save_path=None, title="UMAP_Embedding"):
         if save_path:
             save_file = os.path.join(save_path, f"{title.replace(' ', '_')}.png")
             plt.savefig(save_file, dpi=300)
-            print(f"Embeddings plot saved to: {save_file}")
 
         if plot_flag:
             plt.show()

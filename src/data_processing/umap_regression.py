@@ -4,11 +4,19 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from umap_run import x_features_return, run_umap
-from processing_flat import remove_missing_values
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+
+# ------------------------------------------------------------
+# Removing subjects without target values
+# ------------------------------------------------------------
+def remove_missing_values(raw_df, df_meta, target_col):
+    # Remove subjects without target values
+    subjects_nan = df_meta[df_meta[target_col].isna()]['ID'].tolist()
+    df = raw_df[~raw_df['ID'].isin(subjects_nan)].reset_index(drop=True)
+    return df
 
 # ------------------------------------------------------------
 # UMAP features + optional covariates

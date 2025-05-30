@@ -13,6 +13,7 @@
     "group2": "PSP",
 
     "crossval_flag": true,
+     "tuning_flag": true,
     "evaluation_flag": false,
     "plot": true
 }

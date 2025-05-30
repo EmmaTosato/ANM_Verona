@@ -39,7 +39,6 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
         val_losses.append(val_loss)
         val_accuracies.append(val_accuracy)
 
-        # TODO: capire come salvare loss and accuracy
         # Save best epoch in a checkpoint based on validation accuracy
         if val_accuracy > best_accuracy:
             best_accuracy = val_accuracy
@@ -56,7 +55,7 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
                 'fold': fold
             }, params['ckpt_path_evaluation'])
 
-    print(f"\nBest model saved with val accuracy {best_accuracy:.4f} at epoch {best_epoch}")
+    print(f"\nBest model saved with val accuracy {best_accuracy:.4f} at epoch {best_epoch}\n")
 
     # Save learning curves
     if params['plot']:
@@ -64,11 +63,11 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
         filename_base = f"{params['model_type']}_{params['group1']}_vs_{params['group2']}_fold_{fold}"
 
         # Plot without accuracy
-        save_path = os.path.join(params['plot_dir'], filename_base + "_loss.png")
+        save_path = os.path.join(params['checkpoints_dir_actual'], filename_base + "_loss.png")
         plot_losses(train_losses, val_losses, save_path=save_path, title=title)
         # Plot with accuracy
         title_acc = title + " accuracy"
-        save_path_acc = os.path.join(params['plot_dir'], filename_base + "_loss_acc.png")
+        save_path_acc = os.path.join(params['checkpoints_dir_actual'], filename_base + "_loss_acc.png")
         plot_losses(train_losses, val_losses, val_accuracies, save_path=save_path_acc, title=title_acc)
 
     return best_accuracy, best_train_loss, best_val_loss
@@ -78,8 +77,8 @@ def main_worker(params):
     # Handle checkpoint subdirectory
     ckpt_dir = os.path.join(params["checkpoints_dir"], f"checkpoint{params['checkpoint_id']}")
     os.makedirs(ckpt_dir, exist_ok=True)
-    params["checkpoints_dir"] = ckpt_dir
-    params["ckpt_path_evaluation"] = os.path.join(ckpt_dir, "best_model_fold1.pt")
+    params["checkpoints_dir_actual"] = ckpt_dir
+    params["ckpt_path_evaluation"] = None
 
     # Re-direct the output
     log_path = os.path.join(ckpt_dir, params['log_name'])
@@ -116,6 +115,9 @@ def main_worker(params):
         fold_val_losses = []
 
         # Training
+        print("================================")
+        print("========== TRAINING ============")
+        print("================================")
         for fold, (train_idx, val_idx) in enumerate(skf.split(subjects, labels)):
             print(f"\n--- Fold {fold + 1}/{params['n_folds']} ---")
 
@@ -138,6 +140,7 @@ def main_worker(params):
             else:
                 raise ValueError("Unsupported model type")
 
+            # Optimizer
             criterion = torch.nn.CrossEntropyLoss()
             if params['optimizer'] == 'adam':
                 optimizer = torch.optim.Adam(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
@@ -147,10 +150,11 @@ def main_worker(params):
             else:
                 raise ValueError(f"Unsupported optimizer: {params['optimizer']}")
 
-            # Set path for this fold’s best checkpoint
-            params['ckpt_path_evaluation'] = os.path.join(params['checkpoints_dir'], f"best_model_fold{fold+1}.pt")
+            # Run epochs
+            params['ckpt_path_evaluation'] = os.path.join(params['checkpoints_dir_actual'],f"best_model_fold{fold + 1}.pt")
             best_accuracy, best_train_loss, best_val_loss = run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fold + 1 )
 
+            # Save accuracy
             fold_accuracies.append(best_accuracy)
             fold_train_losses.append(best_train_loss)
             fold_val_losses.append(best_val_loss)
@@ -163,27 +167,28 @@ def main_worker(params):
                     'model_path': params['ckpt_path_evaluation']
                 }
 
-        print("================================\n")
-        print("=== CROSS VALIDATION SUMMARY ===\n")
-        print("================================\n")
-        print(f"Best fold: {best_fold_info['fold']}\n")
-        print(f"Best accuracy: {best_fold_info['accuracy']:.4f}\n\n")
-        print(f"Average accuracy: {np.mean(fold_accuracies):.4f}\n")
-        print(f"Average training loss: {np.mean(fold_train_losses):.4f}\n")
-        print(f"Average validation loss: {np.mean(fold_val_losses):.4f}\n\n")
-        print(f"Best model path: {best_fold_info['model_path']}\n")
+        # Define the best model (in case of subsequential evaluation)
+        params['ckpt_path_evaluation'] = best_fold_info['model_path']
+
+        print("=================================")
+        print("=== CROSS VALIDATION SUMMARY ====")
+        print("=================================")
+        print(f"Best fold: {best_fold_info['fold']}")
+        print(f"Best accuracy: {best_fold_info['accuracy']:.4f}")
+        print(f"Average accuracy: {np.mean(fold_accuracies):.4f}")
+        print(f"Average training loss: {np.mean(fold_train_losses):.4f}")
+        print(f"Average validation loss: {np.mean(fold_val_losses):.4f}")
+        print(f"Best model path: {best_fold_info['model_path']}\n\n")
 
         # Return results for fine-tuning
-        return {
-            'best_fold': best_fold_info['fold'],
-            'best_accuracy': best_fold_info['accuracy'],
-            'avg_accuracy': float(np.mean(fold_accuracies)),
-            'avg_train_loss': float(np.mean(fold_train_losses)),
-            'avg_val_loss': float(np.mean(fold_val_losses))
-        }
-
-    #else:
-        # Possible implementation without cv
+        if params['tuning_flag']:
+            return {
+                'best_fold': best_fold_info['fold'],
+                'best_accuracy': best_fold_info['accuracy'],
+                'avg_accuracy': float(np.mean(fold_accuracies)),
+                'avg_train_loss': float(np.mean(fold_train_losses)),
+                'avg_val_loss': float(np.mean(fold_val_losses))
+            }
 
 
     # --- Evaluation mode ---
@@ -206,56 +211,51 @@ def main_worker(params):
         model.to(device)
 
         # Run evaluation
-        print("\n=== Evaluation on test set ===")
         y_true, y_pred = evaluate(model, test_loader, device)
         metrics = compute_metrics(y_true, y_pred)
 
-        print("===========================\n")
-        print("=== EVALUATION SUMMARY ===\n")
-        print("===========================\n")
-        print(f"Model path: {params['ckpt_path_evaluation']}\n")
-        print(f"Model type: {params['model_type']}\n")
-        print(f"Best fold: {checkpoint.get('fold', '-')}\n")
-        print(f"Best epoch: {checkpoint.get('epoch', '-')}\n\n")
-        print("Metrics on test set:\n")
-        for k, v in metrics.items():
-            if isinstance(v, (float, int)):
-                f.write(f"{k}: {v:.4f}\n")
-            else:
-                f.write(f"{k}: {v}\n")
+        print("===========================")
+        print("=== EVALUATION SUMMARY ====")
+        print("===========================")
+        print(f"Model path: {params['ckpt_path_evaluation']}")
+        print(f"Model type: {params['model_type']}")
+        print(f"Best fold: {checkpoint.get('fold', '-')}")
+        print(f"Best epoch: {checkpoint.get('epoch', '-')}\n")
+        print("Metrics on test set:")
+        metrics_main = {k: v for k, v in metrics.items() if k != "confusion_matrix"}
+        max_key_len = max(len(k) for k in metrics_main)
+        for k, v in metrics_main.items():
+            print(f"{k:<{max_key_len}} : {v:.3f}")
 
-
-        # Prepare row for cumulative CSV
+        # CSV summary
         results_path = os.path.join(params['checkpoints_dir'], "all_results.csv")
         row = {
             'checkpoint': f"checkpoint{params['checkpoint_id']}",
             'model_type': params['model_type'],
+            'group': f"{params['group1']} vs {params['group2']}",
             'best_fold': checkpoint.get("fold", "-"),
             'best_epoch': checkpoint.get("epoch", "-"),
-            'val_accuracy': checkpoint.get("val_accuracy", "-"),
-            'train_loss': checkpoint.get("best_train_loss", "-"),
-            'val_loss': checkpoint.get("best_val_loss", "-"),
+            'val_accuracy': round(checkpoint.get("val_accuracy", 0.0), 3),
+            'train_loss': round(checkpoint.get("best_train_loss", 0.0), 3),
+            'val_loss': round(checkpoint.get("best_val_loss", 0.0), 3),
         }
 
-        # Append to CSV
-        row.update(metrics)
+        metrics_rounded = {k: round(v, 3) for k, v in metrics.items() if k != "confusion_matrix"}
+
+        row.update(metrics_rounded)
         df = pd.DataFrame([row])
         if os.path.exists(results_path):
-            df.to_csv(results_path, mode='a', header=False, index=False)
+            df.to_csv(results_path, mode='a', header=False, index=False, float_format="%.3f")
         else:
-            df.to_csv(results_path, index=False)
+            df.to_csv(results_path, index=False, float_format="%.3f")
 
         # Save confusion matrix
         if params.get('plot'):
             title = f"Confusion Matrix - {params['group1'].upper()} vs {params['group2'].upper()} ({params['model_type'].upper()})"
             filename = f"{params['model_type']}_{params['group1']}_vs_{params['group2']}_conf_matrix.png"
-            save_path = os.path.join(params['plot_dir'], filename)
+            save_path = os.path.join(params['checkpoints_dir_actual'], filename)
             class_names = sorted(test_df[params['label_column']].unique())
             plot_confusion_matrix(metrics['confusion_matrix'], class_names, save_path= save_path, title = title)
-
-
-
-        return None
 
     return None
 
@@ -265,6 +265,10 @@ if __name__ == '__main__':
 
     with open(config_path, "r") as f:
         args = json.load(f)
+
+    # Some checks
+    if args['crossval_flag'] and args['tuning_flag'] and args['evaluation_flag']:
+        raise ValueError("Invalid config: Cannot run training + evaluation with tuning_flag=True")
 
     main_worker(args)
 

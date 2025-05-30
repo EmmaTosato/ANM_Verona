@@ -2,11 +2,7 @@
     "data_dir_augmented": "/data/users/etosato/ANM_Verona/data/FCmaps_augmented_processed",
     "data_dir": "/data/users/etosato/ANM_Verona/data/FCmaps_processed",
     "split_csv": "/data/users/etosato/ANM_Verona/data/ADNI_PSP_splitted.csv",
-
     "checkpoints_dir": "/data/users/etosato/ANM_Verona/src/cnn/checkpoints",
-    "checkpoint_id": 1,
-    "ckpt_path_evaluation": "/data/users/etosato/ANM_Verona/src/cnn/tuning_results/config8/best_model_fold3.pt",
-    "log_name":
 
     "label_column": "Group",
     "model_type": "densenet",
@@ -14,14 +10,19 @@
     "batch_size": 8,
     "lr": 0.0001,
     "weight_decay": 0.001,
-    "n_folds": 2,
+    "n_folds": 3,
     "seed": 42,
     "optimizer": "adam",
 
     "group1": "ADNI",
     "group2": "PSP",
 
+    "checkpoint_id": 5,
+    "ckpt_path_evaluation": "",
+    "log_name": "log_total",
+
     "crossval_flag": true,
+    "tuning_flag": false,
     "evaluation_flag": true,
     "plot": true
 }

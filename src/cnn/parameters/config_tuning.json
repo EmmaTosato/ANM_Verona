@@ -1,12 +1,12 @@
 {
     "data_dir_augmented": "/data/users/etosato/ANM_Verona/data/FCmaps_augmented_processed",
-    "data_dir": "/data/users/etosato/ANM_Verona/data/FC_maps_processsed",
+    "data_dir": "/data/users/etosato/ANM_Verona/data/FCmaps_processed",
     "split_csv": "/data/users/etosato/ANM_Verona/data/ADNI_PSP_splitted.csv",
     "tuning_results_dir": "/data/users/etosato/ANM_Verona/src/cnn/tuning_results",
 
     "label_column": "Group",
 
-    "n_folds": 2,
+    "n_folds": 5,
     "seed": 42,
 
     "group1": "ADNI",

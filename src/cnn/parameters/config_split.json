@@ -1,0 +1,15 @@
+{
+  "labels_path": "/data/users/etosato/ANM_Verona/data/labels.csv",
+  "output_dir": "/data/users/etosato/ANM_Verona/data",
+
+  "group1": "ADNI",
+  "group2": "PSP",
+  "label_column": "Group",
+
+  "to_exclude": [],
+
+  "validation_flag": false,
+  "seed": 42,
+  "test_size": 0.2
+}
+

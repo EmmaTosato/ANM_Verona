@@ -6,6 +6,7 @@
     "checkpoints_dir": "/data/users/etosato/ANM_Verona/src/cnn/checkpoints",
     "checkpoint_id": 1,
     "ckpt_path_evaluation": "/data/users/etosato/ANM_Verona/src/cnn/tuning_results/config8/best_model_fold3.pt",
+    "log_name":
 
     "label_column": "Group",
     "model_type": "densenet",

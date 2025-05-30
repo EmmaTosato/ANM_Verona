@@ -11,6 +11,7 @@ from train import train, validate, plot_losses
 from test import evaluate, compute_metrics, print_metrics, plot_confusion_matrix
 import json
 import random
+import sys
 
 def set_seed(seed):
     random.seed(seed)
@@ -79,6 +80,12 @@ def main_worker(params):
     os.makedirs(ckpt_dir, exist_ok=True)
     params["checkpoints_dir"] = ckpt_dir
     params["ckpt_path_evaluation"] = os.path.join(ckpt_dir, "best_model_fold1.pt")
+
+    # Re-direct the output
+    log_path = os.path.join(ckpt_dir, params['log_name'])
+    sys.stdout = open(log_path, "w")
+    sys.stderr = sys.stdout
+    sys.stdout.reconfigure(line_buffering=True)
 
     # Set the device (GPU if available)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -156,18 +163,15 @@ def main_worker(params):
                     'model_path': params['ckpt_path_evaluation']
                 }
 
-        # Save CV summary to log file
-        log_path = os.path.join(params['checkpoints_dir'], "cv_summary.txt")
-        with open(log_path, "w") as f:
-            f.write("================================\n")
-            f.write("=== CROSS VALIDATION SUMMARY ===\n")
-            f.write("================================\n")
-            f.write(f"Best fold: {best_fold_info['fold']}\n")
-            f.write(f"Best accuracy: {best_fold_info['accuracy']:.4f}\n\n")
-            f.write(f"Average accuracy: {np.mean(fold_accuracies):.4f}\n")
-            f.write(f"Average training loss: {np.mean(fold_train_losses):.4f}\n")
-            f.write(f"Average validation loss: {np.mean(fold_val_losses):.4f}\n\n")
-            f.write(f"Best model path: {best_fold_info['model_path']}\n")
+        print("================================\n")
+        print("=== CROSS VALIDATION SUMMARY ===\n")
+        print("================================\n")
+        print(f"Best fold: {best_fold_info['fold']}\n")
+        print(f"Best accuracy: {best_fold_info['accuracy']:.4f}\n\n")
+        print(f"Average accuracy: {np.mean(fold_accuracies):.4f}\n")
+        print(f"Average training loss: {np.mean(fold_train_losses):.4f}\n")
+        print(f"Average validation loss: {np.mean(fold_val_losses):.4f}\n\n")
+        print(f"Best model path: {best_fold_info['model_path']}\n")
 
         # Return results for fine-tuning
         return {
@@ -206,22 +210,19 @@ def main_worker(params):
         y_true, y_pred = evaluate(model, test_loader, device)
         metrics = compute_metrics(y_true, y_pred)
 
-        # Save evaluation log
-        log_path = os.path.join(params['checkpoints_dir'], "evaluation_log.txt")
-        with open(log_path, "w") as f:
-            f.write("===========================\n")
-            f.write("=== EVALUATION SUMMARY ===\n")
-            f.write("===========================\n")
-            f.write(f"Model path: {params['ckpt_path_evaluation']}\n")
-            f.write(f"Model type: {params['model_type']}\n")
-            f.write(f"Best fold: {checkpoint.get('fold', '-')}\n")
-            f.write(f"Best epoch: {checkpoint.get('epoch', '-')}\n\n")
-            f.write("Metrics on test set:\n")
-            for k, v in metrics.items():
-                if isinstance(v, (float, int)):
-                    f.write(f"{k}: {v:.4f}\n")
-                else:
-                    f.write(f"{k}: {v}\n")
+        print("===========================\n")
+        print("=== EVALUATION SUMMARY ===\n")
+        print("===========================\n")
+        print(f"Model path: {params['ckpt_path_evaluation']}\n")
+        print(f"Model type: {params['model_type']}\n")
+        print(f"Best fold: {checkpoint.get('fold', '-')}\n")
+        print(f"Best epoch: {checkpoint.get('epoch', '-')}\n\n")
+        print("Metrics on test set:\n")
+        for k, v in metrics.items():
+            if isinstance(v, (float, int)):
+                f.write(f"{k}: {v:.4f}\n")
+            else:
+                f.write(f"{k}: {v}\n")
 
 
         # Prepare row for cumulative CSV

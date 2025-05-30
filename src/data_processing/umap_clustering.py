@@ -44,6 +44,8 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column,save_path, t
 
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 10))
 
+    title_prefix = title_prefix.replace('_', ' ')
+
     for i, (title, labels) in enumerate(labels_dictionary.items()):
         ax_left = axes[i, 0]
         ax_right = axes[i, 1]
@@ -55,14 +57,12 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column,save_path, t
             'group': group_column
         })
 
-        sns.scatterplot(data=plot_df, x='X1', y='X2', hue='cluster',
-                        palette='Set1', s=50, ax=ax_left, legend='full')
+        sns.scatterplot(data=plot_df, x='X1', y='X2', hue='cluster',palette='Set1', s=50, ax=ax_left, legend='full')
         ax_left.set_title(f'{title} - Clustering')
         ax_left.set_xlim(x_min, x_max)
         ax_left.set_ylim(y_min, y_max)
 
-        sns.scatterplot(data=plot_df, x='X1', y='X2', hue='group',
-                        palette='Set2', s=50, ax=ax_right, legend='full')
+        sns.scatterplot(data=plot_df, x='X1', y='X2', hue='group',palette='Set2', s=50, ax=ax_right, legend='full')
         ax_right.set_title(f'{title} - Group Labeling')
         ax_right.set_xlim(x_min, x_max)
         ax_right.set_ylim(y_min, y_max)
@@ -73,9 +73,8 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column,save_path, t
 
     # Save figure if path provided
     if save_path:
-        save_file = os.path.join(save_path, f"{title_prefix.replace(' ', '_')}_UMAP_Clustering.png")
+        save_file = os.path.join(save_path, f"{title_prefix.replace(' ', '_')}.png")
         plt.savefig(save_file, dpi=300)
-        print(f"Clustering plot saved to: {save_file}")
 
     # Show figure if requested
     if plot_flag:
@@ -90,15 +89,11 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column,save_path, t
 # Main function
 # ---------------------------
 def main_clustering(df_masked, df_meta, save_path, title_umap, title_cluster, plot_flag=True, do_eval=False, eval_save_path=None):
-    # Check that the directory exist
-    if save_path:
-        os.makedirs(save_path, exist_ok=True)
-
     # Merge voxel and metadata
     df_merged, x = x_features_return(df_masked, df_meta)
 
     # Reduce dimensionality with UMAP
-    x_umap = run_umap(x, plot_flag=True, save_path = save_path,title = title_umap )  # UMAP plotting is disabled
+    x_umap = run_umap(x, plot_flag=True, save_path = save_path, title = title_umap )
 
     # Evaluation of clustering
     if do_eval:
@@ -108,6 +103,7 @@ def main_clustering(df_masked, df_meta, save_path, title_umap, title_cluster, pl
         evaluate_consensus(x_umap, save_path=eval_save_path, prefix=title_cluster, plot_flag=plot_flag)
         print("\n")
         evaluate_hdbscan(x_umap)
+        print("\n")
 
     # Clustering
     labels_dict = run_clustering(x_umap)
@@ -129,8 +125,8 @@ def main_clustering(df_masked, df_meta, save_path, title_umap, title_cluster, pl
         plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['group'],save_path, title_cluster, margin=1.5, plot_flag =plot_flag)
 
         # Plotting also GMM label
-        title_cluster = "clustering_gm_02_mask_gmmLabel"
-        save_path = None
+        title_cluster = title_cluster + " GMM Label"
+        #save_path = None
         plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['gmm_label'],save_path, title_cluster, margin=1.5, plot_flag =plot_flag)
 
 

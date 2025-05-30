@@ -117,8 +117,8 @@ def evaluate_consensus(X, K_range=range(2, 11), n_runs=100, save_path=None, pref
 def evaluate_hdbscan(X, min_cluster_size=5):
     if X.ndim == 1:
         X = X.reshape(-1, 1)
-    clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size)
-    labels = clusterer.fit_predict(X)
+    cluster = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size)
+    labels = cluster.fit_predict(X)
     n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
     print(f"HDBSCAN found {n_clusters} clusters (excluding noise)")
     return labels, n_clusters

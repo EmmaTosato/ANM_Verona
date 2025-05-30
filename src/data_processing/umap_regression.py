@@ -1,4 +1,4 @@
-# umap_regression.py
+# umap_regression_CDR_SB.py
 
 import numpy as np
 import pandas as pd
@@ -13,7 +13,6 @@ import os
 # Removing subjects without target values
 # ------------------------------------------------------------
 def remove_missing_values(raw_df, df_meta, target_col):
-    # Remove subjects without target values
     subjects_nan = df_meta[df_meta[target_col].isna()]['ID'].tolist()
     df = raw_df[~raw_df['ID'].isin(subjects_nan)].reset_index(drop=True)
     return df
@@ -66,15 +65,19 @@ def compute_rmse_per_subject(df_merged, y_pred, residuals):
 # Compute Shuffling Regression
 # ------------------------------------------------------------
 def shuffling_regression(input_data, target, n_iterations=100):
-    # Fit the model with the true y
-    model_real = sm.OLS(target, input_data).fit()
+    # Input and target
+    input_constants = sm.add_constant(input_data)
+    target = target.astype(float)
+
+    # Fit OLS
+    model_real = sm.OLS(target, input_constants).fit()
     r2_real = model_real.rsquared
 
     # Perform shuffling
     r2_shuffled = []
     for _ in range(n_iterations):
         y_shuffled = target.sample(frac=1, replace=False).reset_index(drop=True)
-        model_shuffled = sm.OLS(y_shuffled, input_data).fit()
+        model_shuffled = sm.OLS(y_shuffled, input_constants).fit()
         r2_shuffled.append(model_shuffled.rsquared)
 
     # Compute empirical p-value
@@ -89,16 +92,13 @@ def shuffling_regression(input_data, target, n_iterations=100):
 def plot_ols_diagnostics(target, predictions, residuals, title, save_path=None, plot_flag=True):
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-    sns.scatterplot(x=target, y=predictions, ax=axes[0], color='#61bdcd',
-                    edgecolor='black', alpha=0.8, s=50)
-    axes[0].plot([target.min(), target.max()], [target.min(), target.max()],
-                 '--', color='gray')
+    sns.scatterplot(x=target, y=predictions, ax=axes[0], color='#61bdcd', edgecolor='black', alpha=0.8, s=50)
+    axes[0].plot([target.min(), target.max()], [target.min(), target.max()],'--', color='gray')
     axes[0].set_title(f"{title} - True vs Predicted")
     axes[0].set_xlabel("True")
     axes[0].set_ylabel("Predicted")
 
-    sns.scatterplot(x=predictions, y=residuals, ax=axes[1], color='#61bdcd',
-                    edgecolor='black', alpha=0.8, s=50)
+    sns.scatterplot(x=predictions, y=residuals, ax=axes[1], color='#61bdcd',edgecolor='black', alpha=0.8, s=50)
     axes[1].axhline(0, linestyle='--', color='gray')
     axes[1].set_title(f"{title} - Residuals vs Fitted")
     axes[1].set_xlabel("Predicted")
@@ -142,7 +142,7 @@ def plot_actual_vs_predicted(target, predictions, title, save_path=None, plot_fl
 def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=None,
                     y_log_transform=False, plot_flag=True, save_path=None, title_prefix="OLS"):
 
-    # Remove subjects witout target
+    # Remove subjects without target value
     df_masked = remove_missing_values(df_masked, df_meta, target_variable)
 
     # Merge voxel and metadata
@@ -167,7 +167,7 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
     subject_errors, group_rmse_stats = compute_rmse_per_subject(df_merged, y_pred, residuals)
 
     # Shuffling regression
-    r2_real, r2_shuffled, p_value = shuffling_regression(x_umap, y)
+    r2_real, r2_shuffled, p_value = shuffling_regression(x_ols, y)
 
     # Plot diagnostics if requested
     if plot_flag or save_path:

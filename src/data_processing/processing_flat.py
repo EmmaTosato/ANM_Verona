@@ -27,7 +27,6 @@ def apply_mask(df_thr, mask_path):
     return df_masked
 
 
-
 def summarize_voxel_data(df_masked, threshold=None):
     # Compute summary statistics for voxel data
     summary = {}
@@ -53,7 +52,7 @@ def summarize_voxel_data(df_masked, threshold=None):
     return summary
 
 
-def main_processing_flat(df, df_meta, target_col, gm_mask_path, harvard_mask_path, thresholds=[0.1, 0.2], do_eda=False):
+def main_processing_flat(df, df_meta, gm_mask_path, harvard_mask_path, do_eda=False):
     # Align metadata to raw_df
     df_meta = df_meta.set_index('ID').loc[df['ID']].reset_index()
     assert all(df['ID'] == df_meta['ID']), "Mismatch between ID of df and df_meta_ordered"

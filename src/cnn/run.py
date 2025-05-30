@@ -12,11 +12,18 @@ from models import ResNet3D, DenseNet3D
 from train import train, validate, plot_losses
 from test import evaluate, compute_metrics, print_metrics, plot_confusion_matrix
 import json
+import random
 
-# TODO: reproducibility
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 # Trains the model and evaluates on validation set at each epoch.
-def run_epochs(model, train_loader, val_loader, criterion, optimizer, params):
+def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fold):
     best_accuracy = -float('inf')
     best_epoch = -1
     train_losses, val_losses, val_accuracies = [], [], []
@@ -53,10 +60,16 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params):
 
     # Save learning curves
     if params['plot']:
-        title = f"Training curves - {params['group1'].upper()} vs {params['group2'].upper()} ({params['model_type'].upper()})"
-        filename = f"{params['model_type']}_{params['group1']}_vs_{params['group2']}_loss.png"
-        save_path = os.path.join(params['plot_dir'], filename)
-        plot_losses(train_losses, val_losses, val_accuracies, save_path=save_path, title=title)
+        title = f"Training curves - {params['group1'].upper()} vs {params['group2'].upper()} ({params['model_type'].upper()} - Fold {fold})"
+        filename_base = f"{params['model_type']}_{params['group1']}_vs_{params['group2']}_{fold}"
+
+        # Plot without accuracy
+        save_path = os.path.join(params['plot_dir'], filename_base + "_loss.png")
+        plot_losses(train_losses, val_losses, save_path=save_path, title=title)
+        # Plot with accuracy
+        title_acc = title + " accuracy"
+        save_path_acc = os.path.join(params['plot_dir'], filename_base + "_loss_acc.png")
+        plot_losses(train_losses, val_losses, val_accuracies, save_path=save_path_acc, title=title_acc)
 
     return best_accuracy, best_train_loss, best_val_loss
 
@@ -67,6 +80,9 @@ def main_worker(params):
     # Set the device (GPU if available)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     params['device'] = device
+
+    # Set reproducibility
+    set_seed(params['seed'])
 
     # Load precomputed train/val/test split
     df = pd.read_csv(params['split_csv'])
@@ -106,9 +122,9 @@ def main_worker(params):
 
             # Model, loss, optimizer
             if params['model_type'] == 'resnet':
-                model = ResNet3D(n_classes=2, in_channels=params.get('in_channels', 1)).to(device)
+                model = ResNet3D(n_classes=2).to(device)
             elif params['model_type'] == 'densenet':
-                model = DenseNet3D(n_classes=2, in_channels=params.get('in_channels', 1)).to(device)
+                model = DenseNet3D(n_classes=2).to(device)
             else:
                 raise ValueError("Unsupported model type")
 
@@ -123,7 +139,7 @@ def main_worker(params):
 
             # Set path for this fold’s best checkpoint
             params['checkpoint_path'] = os.path.join(params['checkpoints_dir'], f"best_model_fold{fold+1}.pt")
-            best_accuracy, best_train_loss, best_val_loss = run_epochs(model, train_loader, val_loader, criterion, optimizer, params)
+            best_accuracy, best_train_loss, best_val_loss = run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fold + 1 )
 
             fold_accuracies.append(best_accuracy)
             fold_train_losses.append(best_train_loss)
@@ -169,12 +185,13 @@ def main_worker(params):
 
         # Load model and weights
         if params['model_type'] == 'resnet':
-            model = ResNet3D(n_classes=2)
+            model = ResNet3D(n_classes=2).to(device)
         elif params['model_type'] == 'densenet':
-            model = DenseNet3D(n_classes=2)
+            model = DenseNet3D(n_classes=2).to(device)
         else:
             raise ValueError("Unsupported model type")
-        checkpoint = torch.load(params['checkpoint_path'], map_location=device)
+
+        checkpoint = torch.load(params['checkpoint_path'], map_location=device, weights_only=True)
         model.load_state_dict(checkpoint['state_dict'] if 'state_dict' in checkpoint else checkpoint)
         model.to(device)
 
@@ -196,7 +213,9 @@ def main_worker(params):
 
 
 if __name__ == '__main__':
-    with open("parameters/config.json", "r") as f:
+    config_path = "parameters/config.json"
+
+    with open(config_path, "r") as f:
         args = json.load(f)
 
     main_worker(args)

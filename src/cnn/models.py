@@ -15,12 +15,13 @@ class ResNet3D(nn.Module):
         return self.model(x)
 
 
+
 class DenseNet3D(nn.Module):
-    def __init__(self, n_classes, in_channels=1):
+    def __init__(self, n_classes):
         super(DenseNet3D, self).__init__()
         self.model = DenseNet121(
             spatial_dims=3,
-            in_channels=in_channels,
+            in_channels=1,
             out_channels=n_classes,
             pretrained=False
         )

@@ -1,7 +1,9 @@
 # split.py
+
 import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
+import json
 
 def create_split(args):
     # Create output directory if it doesn't exist
@@ -78,17 +80,9 @@ def create_split(args):
 
 
 if __name__ == '__main__':
-    args = {
-        'labels_path': '/data/users/etosato/ANM_Verona/data/labels.csv',
-        'output_dir': '/data/users/etosato/ANM_Verona/data',
-        'group1': 'ADNI',
-        'group2': 'PSP',
-        'label_column': 'Group',
-        'test_size': 0.2,
-        'seed': 42,
-        'to_exclude': ['3_S_5003', '4_S_5003', '4_S_5005', '4_S_5007', '4_S_5008'],
-        'validation_flag': False,
-        #'val_size': 0.2
-    }
+    config_path = "parameters/config_split.json"
+
+    with open(config_path, "r") as f:
+        args = json.load(f)
 
     create_split(args)

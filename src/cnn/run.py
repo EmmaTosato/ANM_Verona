@@ -51,7 +51,8 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
                 'val_accuracy': val_accuracy,
                 'epoch': best_epoch,
                 'best_train_loss': best_train_loss,
-                'best_val_loss': best_val_loss
+                'best_val_loss': best_val_loss,
+                'fold': fold
             }, params['ckpt_path_evaluation'])
 
     print(f"\nBest model saved with val accuracy {best_accuracy:.4f} at epoch {best_epoch}")
@@ -158,7 +159,9 @@ def main_worker(params):
         # Save CV summary to log file
         log_path = os.path.join(params['checkpoints_dir'], "cv_summary.txt")
         with open(log_path, "w") as f:
-            f.write("=== Cross-Validation Summary ===\n")
+            f.write("================================\n")
+            f.write("=== CROSS VALIDATION SUMMARY ===\n")
+            f.write("================================\n")
             f.write(f"Best fold: {best_fold_info['fold']}\n")
             f.write(f"Best accuracy: {best_fold_info['accuracy']:.4f}\n\n")
             f.write(f"Average accuracy: {np.mean(fold_accuracies):.4f}\n")
@@ -193,6 +196,7 @@ def main_worker(params):
         else:
             raise ValueError("Unsupported model type")
 
+        # Load checkpoint
         checkpoint = torch.load(params['ckpt_path_evaluation'], map_location=device, weights_only=True)
         model.load_state_dict(checkpoint['state_dict'] if 'state_dict' in checkpoint else checkpoint)
         model.to(device)
@@ -201,13 +205,54 @@ def main_worker(params):
         print("\n=== Evaluation on test set ===")
         y_true, y_pred = evaluate(model, test_loader, device)
         metrics = compute_metrics(y_true, y_pred)
-        print_metrics(metrics)
+
+        # Save evaluation log
+        log_path = os.path.join(params['checkpoints_dir'], "evaluation_log.txt")
+        with open(log_path, "w") as f:
+            f.write("===========================\n")
+            f.write("=== EVALUATION SUMMARY ===\n")
+            f.write("===========================\n")
+            f.write(f"Model path: {params['ckpt_path_evaluation']}\n")
+            f.write(f"Model type: {params['model_type']}\n")
+            f.write(f"Best fold: {checkpoint.get('fold', '-')}\n")
+            f.write(f"Best epoch: {checkpoint.get('epoch', '-')}\n\n")
+            f.write("Metrics on test set:\n")
+            for k, v in metrics.items():
+                if isinstance(v, (float, int)):
+                    f.write(f"{k}: {v:.4f}\n")
+                else:
+                    f.write(f"{k}: {v}\n")
+
+
+        # Prepare row for cumulative CSV
+        results_path = os.path.join(params['checkpoints_dir'], "all_results.csv")
+        row = {
+            'checkpoint': f"checkpoint{params['checkpoint_id']}",
+            'model_type': params['model_type'],
+            'best_fold': checkpoint.get("fold", "-"),
+            'best_epoch': checkpoint.get("epoch", "-"),
+            'val_accuracy': checkpoint.get("val_accuracy", "-"),
+            'train_loss': checkpoint.get("best_train_loss", "-"),
+            'val_loss': checkpoint.get("best_val_loss", "-"),
+        }
+
+        # Append to CSV
+        row.update(metrics)
+        df = pd.DataFrame([row])
+        if os.path.exists(results_path):
+            df.to_csv(results_path, mode='a', header=False, index=False)
+        else:
+            df.to_csv(results_path, index=False)
+
+        # Save confusion matrix
         if params.get('plot'):
             title = f"Confusion Matrix - {params['group1'].upper()} vs {params['group2'].upper()} ({params['model_type'].upper()})"
             filename = f"{params['model_type']}_{params['group1']}_vs_{params['group2']}_conf_matrix.png"
             save_path = os.path.join(params['plot_dir'], filename)
             class_names = sorted(test_df[params['label_column']].unique())
             plot_confusion_matrix(metrics['confusion_matrix'], class_names, save_path= save_path, title = title)
+
+
 
         return None
 

@@ -1,12 +1,10 @@
 # run.py
 import os
-import shutil
 import torch
 import pandas as pd
 import numpy as np
 from torch.utils.data import DataLoader
 from sklearn.model_selection import StratifiedKFold
-import matplotlib.pyplot as plt
 from datasets import FCDataset, AugmentedFCDataset
 from models import ResNet3D, DenseNet3D
 from train import train, validate, plot_losses
@@ -54,14 +52,14 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
                 'epoch': best_epoch,
                 'best_train_loss': best_train_loss,
                 'best_val_loss': best_val_loss
-            }, params['checkpoint_path'])
+            }, params['ckpt_path_evaluation'])
 
     print(f"\nBest model saved with val accuracy {best_accuracy:.4f} at epoch {best_epoch}")
 
     # Save learning curves
     if params['plot']:
         title = f"Training curves - {params['group1'].upper()} vs {params['group2'].upper()} ({params['model_type'].upper()} - Fold {fold})"
-        filename_base = f"{params['model_type']}_{params['group1']}_vs_{params['group2']}_{fold}"
+        filename_base = f"{params['model_type']}_{params['group1']}_vs_{params['group2']}_fold_{fold}"
 
         # Plot without accuracy
         save_path = os.path.join(params['plot_dir'], filename_base + "_loss.png")
@@ -75,7 +73,11 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
 
 
 def main_worker(params):
-    os.makedirs(params['checkpoints_dir'], exist_ok=True)
+    # Handle checkpoint subdirectory
+    ckpt_dir = os.path.join(params["checkpoints_dir"], f"checkpoint{params['checkpoint_id']}")
+    os.makedirs(ckpt_dir, exist_ok=True)
+    params["checkpoints_dir"] = ckpt_dir
+    params["ckpt_path_evaluation"] = os.path.join(ckpt_dir, "best_model_fold1.pt")
 
     # Set the device (GPU if available)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -138,7 +140,7 @@ def main_worker(params):
                 raise ValueError(f"Unsupported optimizer: {params['optimizer']}")
 
             # Set path for this fold’s best checkpoint
-            params['checkpoint_path'] = os.path.join(params['checkpoints_dir'], f"best_model_fold{fold+1}.pt")
+            params['ckpt_path_evaluation'] = os.path.join(params['checkpoints_dir'], f"best_model_fold{fold+1}.pt")
             best_accuracy, best_train_loss, best_val_loss = run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fold + 1 )
 
             fold_accuracies.append(best_accuracy)
@@ -150,19 +152,19 @@ def main_worker(params):
                 best_fold_info = {
                     'fold': fold + 1,
                     'accuracy': best_accuracy,
-                    'model_path': params['checkpoint_path']
+                    'model_path': params['ckpt_path_evaluation']
                 }
 
-        # Print CV summary
-        print("\n=== Cross-Validation Summary ===")
-        print(f"Best fold: {best_fold_info['fold']}")
-        print(f"Best accuracy: {best_fold_info['accuracy']:.4f}")
-        print(f"Average accuracy: {np.mean(fold_accuracies):.4f}")
-        print(f"Average training loss: {np.mean(fold_train_losses):.4f}")
-        print(f"Average validation loss: {np.mean(fold_val_losses):.4f}")
-
-        # Save the best model globally
-        shutil.copy(best_fold_info['model_path'], os.path.join(params['checkpoints_dir'], "best_model_overall.pt"))
+        # Save CV summary to log file
+        log_path = os.path.join(params['checkpoints_dir'], "cv_summary.txt")
+        with open(log_path, "w") as f:
+            f.write("=== Cross-Validation Summary ===\n")
+            f.write(f"Best fold: {best_fold_info['fold']}\n")
+            f.write(f"Best accuracy: {best_fold_info['accuracy']:.4f}\n\n")
+            f.write(f"Average accuracy: {np.mean(fold_accuracies):.4f}\n")
+            f.write(f"Average training loss: {np.mean(fold_train_losses):.4f}\n")
+            f.write(f"Average validation loss: {np.mean(fold_val_losses):.4f}\n\n")
+            f.write(f"Best model path: {best_fold_info['model_path']}\n")
 
         # Return results for fine-tuning
         return {
@@ -191,7 +193,7 @@ def main_worker(params):
         else:
             raise ValueError("Unsupported model type")
 
-        checkpoint = torch.load(params['checkpoint_path'], map_location=device, weights_only=True)
+        checkpoint = torch.load(params['ckpt_path_evaluation'], map_location=device, weights_only=True)
         model.load_state_dict(checkpoint['state_dict'] if 'state_dict' in checkpoint else checkpoint)
         model.to(device)
 

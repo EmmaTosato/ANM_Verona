@@ -1,16 +1,22 @@
 # processing_flat.py
 import pandas as pd
-import numpy as np
+import json
 import nibabel as nib
+import os
+import pickle
 
 
+# ------------------------------------------------------------
+# Apply a threshold to voxel data in a DataFrame (0.1 or 0.2).
+# ------------------------------------------------------------
 def apply_threshold(dataframe, threshold):
-    # Apply a threshold to voxel data in a DataFrame.
     df_thr = dataframe.copy()
     df_thr.iloc[:, 1:] = df_thr.iloc[:, 1:].mask(df_thr.iloc[:, 1:] < threshold, 0)
     return df_thr
 
-
+# ------------------------------------------------------------
+# Apply a flatten mask.
+# ------------------------------------------------------------
 def apply_mask(df_thr, mask_path):
     # Load and flatten the 3D mask
     mask = nib.load(mask_path).get_fdata().flatten().astype(bool)
@@ -26,7 +32,9 @@ def apply_mask(df_thr, mask_path):
 
     return df_masked
 
-
+# ------------------------------------------------------------
+# EDA summary.
+# ------------------------------------------------------------
 def summarize_voxel_data(df_masked, threshold=None):
     # Compute summary statistics for voxel data
     summary = {}
@@ -96,6 +104,39 @@ def main_processing_flat(df, df_meta, gm_mask_path, harvard_mask_path, do_eda=Fa
             eda_list.append(summary)
         df_summary = pd.DataFrame(eda_list).set_index('Dataset')
 
-    print("Processing completed!")
     return outputs, df_summary
 
+
+if __name__ == "__main__":
+    with open("/Users/emmatosato/Documents/PhD/ANM_Verona/src/data_processing/config.json", "r") as f:
+        config = json.load(f)
+    dir_dataframe = config['dir_dataframe']
+
+    # Generate outputs and summary
+    print("Starting processing...")
+    outputs, df_summary = main_processing_flat(
+        df=pd.read_pickle(config['raw_df']),
+        df_meta=pd.read_csv(config['df_meta']),
+        gm_mask_path=config['gm_mask_path'],
+        harvard_mask_path=config['harvard_oxford_mask_path'],
+        do_eda=True
+    )
+
+    # Save outputs
+    print("Saving...")
+    save_map = {
+        'thr_01_gm': "df_thr01_gm_masked.pkl",
+        'thr_02_gm': "df_thr02_gm_masked.pkl",
+        'thr_01_har': "df_thr01_har_masked.pkl",
+        'thr_02_har': "df_thr02_har_masked.pkl",
+        'gm_no_thr': "df_gm_masked.pkl",
+        'har_no_thr': "df_har_masked.pkl"
+    }
+
+    for key, filename in save_map.items():
+        outputs[key].to_pickle(os.path.join(dir_dataframe, filename))
+
+    # Save EDA summary
+    dir_dataframe = os.path.join(dir_dataframe, "meta")
+    df_summary.to_csv(os.path.join(dir_dataframe, "df_summary.csv"))
+    print("Done.")

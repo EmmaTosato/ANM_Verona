@@ -1,0 +1,19 @@
+{
+  "dir_FCmaps": "/Users/emmatosato/Documents/PhD/ANM_Verona/data/FCmaps",
+  "dir_FCmaps_processed": "Users/emmatosato/Documents/PhD/ANM_Verona/data/FCmaps_augmented_processed",
+  "dir_data_utils": "/Users/emmatosato/Documents/PhD/ANM_Verona/data_utils/",
+  "dir_dataframe": "/Users/emmatosato/Documents/PhD/ANM_Verona/data/dataframe",
+
+  "gm_mask_path": "/Users/emmatosato/Documents/PhD/ANM_Verona/utils/masks/GM_mask.nii",
+  "harvard_oxford_mask_path": "/Users/emmatosato/Documents/PhD/ANM_Verona/utils/masks/mask_GM.nii",
+
+  "atrophy_dataset_matches": "/Users/emmatosato/Documents/PhD/ANM_Verona/utils/metadata/atrophy_matched.xlsx",
+  "cognitive_dataset": "/Users/emmatosato/Documents/PhD/ANM_Verona/utils/metadata/cognitive_dataset.xlsx",
+
+  "yeo_noThr": "/Users/emmatosato/Documents/PhD/ANM_Verona/data/mean_networks/mean_networks_noTHR.csv",
+  "yeo_02thr": "/Users/emmatosato/Documents/PhD/ANM_Verona/data/mean_networks/mean_networks_thr02.csv",
+  "yeo_01thr":"/Users/emmatosato/Documents/PhD/ANM_Verona/data/mean_networks/mean_networks_thr01.csv",
+
+  "df_meta": "/Users/emmatosato/Documents/PhD/ANM_Verona/data/dataframe/meta/df_meta.csv",
+  "raw_df": "/Users/emmatosato/Documents/PhD/ANM_Verona/data/dataframe/fdc/raw_df.pkl"
+}

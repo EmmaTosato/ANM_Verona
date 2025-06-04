@@ -7,6 +7,8 @@ import numpy as np
 from sklearn.mixture import GaussianMixture
 import json
 import pickle
+import warnings
+warnings.filterwarnings("ignore")
 
 def load_FDCmaps(config):
     # All nii.gz files in the directory
@@ -15,18 +17,6 @@ def load_FDCmaps(config):
 
     # Extract Subject IDs from filenames
     subject_id = [os.path.basename(f).replace('.FDC.nii.gz', '') for f in files_path]
-
-    # Sanity checks
-    assert len(files_path) == len(subject_id), (
-        f"Mismatch count: {len(files_path)} files vs {len(subject_id)} IDs"
-    )
-    assert len(subject_id) == len(set(subject_id)), "ID duplicated"
-    for fp, sid in zip(files_path, subject_id):
-        fname = os.path.basename(fp)
-        expected = sid + '.FDC.nii.gz'
-        assert fname == expected, (
-            f"Filename “{fname}” does not correspond to the extracted ID “{sid}”"
-        )
 
     # Load image data and flatten
     maps_FDC = []
@@ -39,7 +29,7 @@ def load_FDCmaps(config):
     raw_df = pd.DataFrame(maps_FDC)
     raw_df.insert(0, 'ID', subject_id)
 
-    # Save the raw dataframe as csv
+    # Save the raw dataframes as csv
     raw_df.to_pickle(os.path.join(config['raw_df']))
 
     return files_path, subject_id, raw_df
@@ -80,33 +70,28 @@ def gmm_label_CDR(df_meta):
     return df_meta
 
 def load_Yeo(config, df_meta):
-    # Load the csv files for Yeo networks
-    df_no_thr = pd.read_csv(config["yeo_noThr"])
-    df_thr01 = pd.read_csv(config["yeo_01thr"])
-    df_thr02 = pd.read_csv(config["yeo_02thr"])
+    save_dir = config["dir_yeo_df"]
 
-    # Rename the columns
-    df_no_thr = df_no_thr.rename(columns={"CODE": "ID"})
-    df_thr01 = df_thr01.rename(columns={"CODE": "ID"})
-    df_thr02 = df_thr02.rename(columns={"CODE": "ID"})
+    # Mapping from config keys to output filenames
+    mapping = {
+        "yeo_noThr": "networks_noTHR.csv",
+        "yeo_01thr": "networks_thr01.csv",
+        "yeo_02thr": "networks_thr02.csv"
+    }
 
-    # Reorder the columns to match the metadata dataframe
-    df_no_thr = df_no_thr.set_index("ID").loc[df_meta['ID']].reset_index()
-    df_thr01 = df_thr01.set_index("ID").loc[df_meta['ID']].reset_index()
-    df_thr02 = df_thr02.set_index("ID").loc[df_meta['ID']].reset_index()
+    dfs = []
+    for key, out_name in mapping.items():
+        df = pd.read_csv(config[key]).rename(columns={"CODE": "ID"})
+        df = df.set_index("ID").loc[df_meta['ID']].reset_index()
+        df.to_csv(os.path.join(save_dir, out_name), index=False)
+        dfs.append(df)
 
-    # Save the new csv
-    dir_dataframe = os.path.join(config['dir_dataframe'], "networks")
-    df_no_thr.to_csv(os.path.join(dir_dataframe, "networks_noTHR.csv"), index=False)
-    df_thr01.to_csv(os.path.join(dir_dataframe, "networks_thr01.csv"), index=False)
-    df_thr02.to_csv(os.path.join(dir_dataframe, "networks_thr02.csv"), index=False)
-
-    return df_no_thr, df_thr01, df_thr02
+    return tuple(dfs)
 
 
 if __name__ == "__main__":
     print("Loading config and metadata...")
-    with open("config.json", "r") as f:
+    with open("src/data_processing/config.json", "r") as f:
         config = json.load(f)
 
     # Load the metadata
@@ -115,10 +100,10 @@ if __name__ == "__main__":
     # Apply GMM labeling to CDR_SB
     df_meta = gmm_label_CDR(df_meta)
 
-    # Save the metadata dataframe as csv
+    # Save the metadata dataframes as csv
     df_meta.to_csv(os.path.join(config['df_meta']))
 
-    # Load the raw dataframe
+    # Load the raw dataframes
     print("Loading FC maps...")
     files_path, subject_id, raw_df = load_FDCmaps(config)
 

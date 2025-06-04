@@ -6,6 +6,8 @@ from sklearn.mixture import GaussianMixture
 from sklearn.metrics import silhouette_score
 from scipy.cluster.hierarchy import linkage, fcluster
 import hdbscan
+import warnings
+warnings.filterwarnings("ignore")
 
 # --------------------------------------
 # K-Means Evaluation: Elbow + Silhouette
@@ -25,7 +27,7 @@ def evaluate_kmeans(X, K_range=range(2, 11), save_path=None, prefix='', plot_fla
         plt.plot(K_range, inertias, 'o-')
         plt.xlabel('k')
         plt.ylabel('Inertia')
-        plt.title('K-Means Elbow')
+        plt.title(f'{prefix} K-Means Elbow')
         if save_path:
             plt.savefig(os.path.join(save_path, f"{prefix}_kmeans_elbow.png"))
         if plot_flag:
@@ -36,7 +38,7 @@ def evaluate_kmeans(X, K_range=range(2, 11), save_path=None, prefix='', plot_fla
         plt.plot(K_range, sil_scores, 'o-')
         plt.xlabel('k')
         plt.ylabel('Silhouette Score')
-        plt.title('K-Means Silhouette')
+        plt.title(f'{prefix} K-Means Silhouette')
         if save_path:
             plt.savefig(os.path.join(save_path, f"{prefix}_kmeans_silhouette.png"))
         if plot_flag:
@@ -63,7 +65,7 @@ def evaluate_gmm(X, K_range=range(2, 11), save_path=None, prefix='', plot_flag=T
         plt.plot(K_range, bic, marker='o', label='BIC')
         plt.xlabel('Components')
         plt.ylabel('Score')
-        plt.title('GMM AIC/BIC')
+        plt.title(f'{prefix} GMM AIC/BIC')
         plt.legend()
         if save_path:
             plt.savefig(os.path.join(save_path, f"{prefix}_gmm_aic_bic.png"))
@@ -101,7 +103,7 @@ def evaluate_consensus(X, K_range=range(2, 11), n_runs=100, save_path=None, pref
         plt.plot(ks, scores, marker='o')
         plt.xlabel('k')
         plt.ylabel('Silhouette Score')
-        plt.title('Consensus Clustering Stability')
+        plt.title(f'{prefix} Consensus Clustering Stability')
         if save_path:
             plt.savefig(os.path.join(save_path, f"{prefix}_consensus_stability.png"))
         if plot_flag:
@@ -120,6 +122,6 @@ def evaluate_hdbscan(X, min_cluster_size=5):
     cluster = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size)
     labels = cluster.fit_predict(X)
     n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
-    print(f"HDBSCAN found {n_clusters} clusters (excluding noise)")
+    print(f"HDBSCAN found {n_clusters} clusters (excluding noise)\n")
     return labels, n_clusters
 

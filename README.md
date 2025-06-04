@@ -36,3 +36,42 @@ The subject 4_S_5003 is removed
 - `df_thr02_har_masked`
 - `df_gm_masked`
 - `df_har_masked`
+
+## Analysis
+### Unsupervised clustering
+- About the **input**
+    - DataFrame that have been processed
+    - The metadata
+    - Possibility to save the plot
+    - Title of the 2 plots, embeddings and clustering
+    - Possibility to plot
+    - Possibility to evaluate the clustering
+    - Possibility to save the plot of the clustering
+- **UMAP** for dimensionality reduction
+- **Clustering**
+- Clustering evalaution
+- Plots
+
+The UMAP and clustering ww have different paths:
+- UMAP (2 dimensions)
+    1. on the FDC maps
+    2. on the Yeo Networks
+- Clustering
+    1. on UMAP + FDC
+    2. on UMAP + Yeo Networks
+
+### Linear regression
+- About the input
+    - DataFrame that have been processed
+    - The metadata
+    - Target variable that we’ll be regressed
+    - Covariates
+    - Possibility to log transform the target
+    - Possibility to plot ==> save the plot in a different directory if you change the target variable
+    - Possibility to save the plot
+    - Prefix for title and path
+- Again the subjects witout the target are removed
+- UMAP for dimensionality reduction
+- Fit OLS model
+- Shuffling regression
+- Results are printed

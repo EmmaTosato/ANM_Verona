@@ -3,6 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import umap
 import numpy as np
+import re
+import warnings
+warnings.filterwarnings("ignore")
 
 np.random.seed(42)
 
@@ -41,19 +44,20 @@ def run_umap(x_input, plot_flag=True, save_path=None, title="UMAP_Embedding"):
         repulsion_strength=1.0, negative_sample_rate=5, transform_queue_size=4.0,
         random_state=42
     )
-
+    print("Running UMAP...\n")
     x_umap = reducer.fit_transform(x_input)
 
     if plot_flag or save_path:
         plt.figure(figsize=(6, 4))
         plt.scatter(x_umap[:, 0], x_umap[:, 1], s=10, alpha=0.6)
-        plt.title(title)
+        plt.title(f'{title} - UMAP Embedding')
         plt.xlabel("UMAP 1")
         plt.ylabel("UMAP 2")
         plt.grid(True)
 
         if save_path:
-            save_file = os.path.join(save_path, f"{title.replace(' ', '_')}.png")
+            clean_title = re.sub(r'[\s\-]+', '_', title.strip())
+            save_file = os.path.join(save_path, f"{clean_title}_Embedding.png")
             plt.savefig(save_file, dpi=300)
 
         if plot_flag:

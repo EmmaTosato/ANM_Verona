@@ -3,7 +3,10 @@ import pandas as pd
 import json
 import nibabel as nib
 import os
+import pathlib
 import pickle
+import warnings
+warnings.filterwarnings("ignore")
 
 
 # ------------------------------------------------------------
@@ -36,26 +39,29 @@ def apply_mask(df_thr, mask_path):
 # EDA summary.
 # ------------------------------------------------------------
 def summarize_voxel_data(df_masked, threshold=None):
-    # Compute summary statistics for voxel data
     summary = {}
     summary['Shape'] = df_masked.shape
+
     if threshold is not None:
         values = df_masked.iloc[:, 1:]
         has_low = ((values > 0) & (values < threshold)).any().any()
-        summary[f'Values between 0 and {threshold}'] = has_low
+        summary[f'Values 0 - {threshold}'] = has_low  # renamed
+
     zero_rows = (df_masked.iloc[:, 1:] == 0).all(axis=1).sum()
     summary['Zero maps'] = f"{zero_rows} of {df_masked.shape[0]}"
+
     voxel_data = df_masked.iloc[:, 1:].values
     nonzero_voxels = voxel_data[voxel_data != 0]
+
     summary.update({
-        'All Min': voxel_data.min(),
-        'All Max': voxel_data.max(),
-        'All Mean': voxel_data.mean(),
-        'All Std': voxel_data.std(),
-        'Nonzero Min': nonzero_voxels.min(),
-        'Nonzero Max': nonzero_voxels.max(),
-        'Nonzero Mean': nonzero_voxels.mean(),
-        'Nonzero Std': nonzero_voxels.std(),
+        'All Min': round(voxel_data.min(), 3),
+        'All Max': round(voxel_data.max(), 3),
+        'All Mean': round(voxel_data.mean(), 3),
+        'All Std': round(voxel_data.std(), 3),
+        'Nonzero Min': round(nonzero_voxels.min(), 3),
+        'Nonzero Max': round(nonzero_voxels.max(), 3),
+        'Nonzero Mean': round(nonzero_voxels.mean(), 3),
+        'Nonzero Std': round(nonzero_voxels.std(), 3),
     })
     return summary
 
@@ -84,12 +90,12 @@ def main_processing_flat(df, df_meta, gm_mask_path, harvard_mask_path, do_eda=Fa
 
     # Collect all outputs
     outputs = {
-        'thr_01_gm': df_thr01_gm_masked,
-        'thr_02_gm': df_thr02_gm_masked,
-        'thr_01_har': df_thr01_har_masked,
-        'thr_02_har': df_thr02_har_masked,
-        'gm_no_thr': df_gm_masked,
-        'har_no_thr': df_har_masked
+        'df_thr01_gm': df_thr01_gm_masked,
+        'df_thr02_gm': df_thr02_gm_masked,
+        'df_thr01_har': df_thr01_har_masked,
+        'df_thr02_har': df_thr02_har_masked,
+        'df_gm': df_gm_masked,
+        'df_har': df_har_masked
     }
 
     # Optional EDA
@@ -108,9 +114,8 @@ def main_processing_flat(df, df_meta, gm_mask_path, harvard_mask_path, do_eda=Fa
 
 
 if __name__ == "__main__":
-    with open("/Users/emmatosato/Documents/PhD/ANM_Verona/src/data_processing/config.json", "r") as f:
+    with open("src/data_processing/config.json", "r") as f:
         config = json.load(f)
-    dir_dataframe = config['dir_dataframe']
 
     # Generate outputs and summary
     print("Starting processing...")
@@ -124,19 +129,11 @@ if __name__ == "__main__":
 
     # Save outputs
     print("Saving...")
-    save_map = {
-        'thr_01_gm': "df_thr01_gm_masked.pkl",
-        'thr_02_gm': "df_thr02_gm_masked.pkl",
-        'thr_01_har': "df_thr01_har_masked.pkl",
-        'thr_02_har': "df_thr02_har_masked.pkl",
-        'gm_no_thr': "df_gm_masked.pkl",
-        'har_no_thr': "df_har_masked.pkl"
-    }
+    for key, df_out in outputs.items():
+        out_path = os.path.join(config['dir_fdc_df'], f"{key}.pkl")
+        df_out.to_pickle(out_path)
 
-    for key, filename in save_map.items():
-        outputs[key].to_pickle(os.path.join(dir_dataframe, filename))
 
     # Save EDA summary
-    dir_dataframe = os.path.join(dir_dataframe, "meta")
-    df_summary.to_csv(os.path.join(dir_dataframe, "df_summary.csv"))
+    df_summary.to_csv(os.path.join(config['dir_dataframe'], "meta/df_summary.csv"))
     print("Done.")

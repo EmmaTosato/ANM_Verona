@@ -116,17 +116,23 @@ def main_clustering(df_masked, df_meta, title, path_umap=None, path_cluster=None
         'X1': x_umap[:, 0],
         'X2': x_umap[:, 1],
         'group': df_merged['Group'],
-        'gmm_label': df_merged['GMM_Label'],
-        'subject_id': df_merged['ID']
+        'gmm_label_cdr': df_merged['GMM_Label_CDR'],
+        'ID': df_merged['ID']
     })
 
     # Plot and save clusters
     if plot_flag or path_cluster:
         print("Running clustering...")
+        # Plot according to group
         plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['group'], path_cluster, title, margin=1.5, plot_flag=plot_flag)
 
+        # Plot according to gmm labels cdr
         title_cluster = title + " GMM Label"
-        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['gmm_label'], path_cluster, title_cluster, margin=1.5, plot_flag=plot_flag)
+        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['gmm_label_cdr'], path_cluster, title_cluster, margin=1.5, plot_flag=plot_flag)
+
+    # Add clustering labels into df_meta
+    df_meta = df_meta.merge(labeling_umap[['ID', 'labels_km', 'labels_hdb']], on='ID', how='left')
+
 
     return labeling_umap, x_umap
 
@@ -150,7 +156,7 @@ if __name__ == "__main__":
     labeling, x_umap = main_clustering(
         df_masked,
         df_meta,
-        title=config['prefix'],
+        title=config['prefix_cluster'],
         path_umap=config['path_umap'],
         path_cluster=config['path_cluster'],
         path_opt_cluster=config['path_opt_cluster'],

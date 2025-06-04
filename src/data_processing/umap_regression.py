@@ -175,6 +175,8 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
 
     # Statistics
     subject_errors, group_rmse_stats = compute_rmse_per_subject(df_merged, y_pred, residuals)
+    subject_errors_sorted = subject_errors.sort_values(by='RMSE').reset_index(drop=True)
+
 
     # Plot diagnostics if requested
     if plot_flag or save_path:
@@ -182,21 +184,28 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
         plot_actual_vs_predicted(y, y_pred, title=title_prefix, save_path=save_path, plot_flag=plot_flag)
 
     # Print results
+    print("OLS REGRESSION SUMMARY")
     print(model.summary())
-    print("\nRMSE by diagnostic group:")
+
+    print("\n\n" + "-" * 80)
+    print("SHUFFLING REGRESSION")
+    print("-" * 80)
+    print(f"R² real:      {round(r2_real, 4)}")
+    print(f"R² shuffled:  {np.mean(r2_shuffled):.4f}")
+    print(f"Empirical p:  {p_value:.4f}")
+
+    print("\n\n" + "-" * 80)
+    print("RMSE BY DIAGNOSTIC GROUP AND OVERALL METRICS")
+    print("-" * 80)
     print(group_rmse_stats)
+    print("\n")
+    print(f"MAE:  {round(mean_absolute_error(y, y_pred), 4)}")
+    print(f"RMSE: {round(np.sqrt(mean_squared_error(y, y_pred)), 4)}")
 
-    subject_errors_sorted = subject_errors.sort_values(by='RMSE').reset_index(drop=True)
-    print("\nSubjects ranked by RMSE (best to worst):")
+    print("\n\n" + "-" * 80)
+    print("SUBJECTS RANKED BY RMSE (BEST TO WORST)")
+    print("-" * 80)
     print(subject_errors_sorted.to_string(index=False))
-
-    print("\nMAE:", round(mean_absolute_error(y, y_pred), 4),
-          "RMSE:", round(np.sqrt(mean_squared_error(y, y_pred)), 4))
-
-    print("\nShuffling Regression")
-    print("R² real", round(r2_real, 4))
-    print(f"R² shuffled: {np.mean(r2_shuffled):.4f}")
-    print(f"Empirical p-value: {p_value:.4f}")
 
     return model, y_pred, residuals, subject_errors, group_rmse_stats
 
@@ -219,17 +228,37 @@ if __name__ == "__main__":
     df_masked = pd.read_pickle(config['df_masked'])
     df_meta = pd.read_csv(config['df_meta'])
 
-    # Run regression
-    model, y_pred, residuals, subject_errors, group_rmse_stats = main_regression(
-        df_masked=df_masked,
-        df_meta=df_meta,
-        target_variable= config["target_variable"],
-        covariates=config['covariates'],
-        y_log_transform=config['y_log_transform'],
-        plot_flag=config["plot_regression"],
-        save_path= output_dir,
-        title_prefix= config['prefix']
-    )
+    if config['cluster_regression']:
+        cluster_col = config['cluster_col']
+        for cluster_id in sorted(df_meta[cluster_col].dropna().unique()):
+            print(f"\n=== Cluster {cluster_col} - {cluster_id} ===")
+
+            ids = df_meta[df_meta[cluster_col] == cluster_id]["ID"]
+            df_meta_cluster = df_meta[df_meta["ID"].isin(ids)].reset_index(drop=True)
+            df_cluster = df_masked[df_masked["ID"].isin(ids)].reset_index(drop=True)
+
+            model, y_pred, residuals, subject_errors, group_rmse_stats = main_regression(
+                df_masked=df_cluster,
+                df_meta=df_meta_cluster,
+                target_variable=config["target_variable"],
+                covariates=config['covariates'],
+                y_log_transform=config['y_log_transform'],
+                plot_flag=config["plot_regression"],
+                save_path=output_dir,
+                title_prefix=f"{cluster_col}_{cluster_id}"
+            )
+    else:
+        # Run regression
+        model, y_pred, residuals, subject_errors, group_rmse_stats = main_regression(
+            df_masked=df_masked,
+            df_meta=df_meta,
+            target_variable= config["target_variable"],
+            covariates=config['covariates'],
+            y_log_transform=config['y_log_transform'],
+            plot_flag=config["plot_regression"],
+            save_path= output_dir,
+            title_prefix= config['prefix_regression']
+        )
 
     # Reset stdout
     sys.stdout.close()

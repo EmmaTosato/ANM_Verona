@@ -24,7 +24,9 @@ def tuning(fixed_params, grid):
         # Set up output directories
         config_dir = os.path.join(fixed_params['tuning_results_dir'], config_name)
         os.makedirs(config_dir, exist_ok=True)
-        params['checkpoint_path'] = os.path.join(config_dir, "best_model_overall.pt")
+
+        # Overwrite
+        params['checkpoint_id'] = f"tuning{i + 1}"
         params['checkpoints_dir'] = config_dir
         params['plot_dir'] = config_dir
 

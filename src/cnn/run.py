@@ -101,14 +101,14 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
 
 def create_training_summary(params, best_fold_info, fold_accuracies, fold_val_losses):
     return {
-        'run id': params['run_id'],
+        'run id': f"run{params['run_id']}",
         'group': f"{params['group1']} vs {params['group2']}",
+        'threshold': params.get("threshold", "unspecified"),
         'best fold': best_fold_info['fold'],
         'best epoch': best_fold_info['epoch'],
         'best accuracy': round(best_fold_info['accuracy'], 4),
         'average accuracy': round(np.mean(fold_accuracies), 4),
         'average validation loss': round(np.mean(fold_val_losses), 4),
-        'checkpoint_path': best_fold_info['model_path'],
         'model_type': params['model_type'],
         'optimizer': params['optimizer'],
         'lr': params['lr'],
@@ -308,14 +308,11 @@ def main_worker(params):
         # CSV summary
         results_path = os.path.join(params['runs_dir'], "all_testing_results.csv")
         row = {
-            'run id': f"checkpoint{params['run_id']}",
-            'current fold': checkpoint.get("fold", "-"),
-            'model type': params['model_type'],
+            'run id': f"run{params['run_id']}",
             'group': f"{params['group1']} vs {params['group2']}",
+            'threshold': params.get("threshold", "unspecified"),
+            'current fold': checkpoint.get("fold", "-"),
             'best epoch': checkpoint.get("epoch", "-"),
-            'best val accuracy': round(checkpoint.get("val_accuracy", 0.0), 3),
-            'best train loss': round(checkpoint.get("best_train_loss", 0.0), 3),
-            'best val loss': round(checkpoint.get("best_val_loss", 0.0), 3),
         }
 
         metrics_rounded = {k: round(v, 3) for k, v in metrics.items() if k != "confusion_matrix"}

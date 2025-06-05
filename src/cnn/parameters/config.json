@@ -5,10 +5,8 @@
     "runs_dir": "/data/users/etosato/ANM_Verona/src/cnn/training_results",
     "tuning_results_dir": "/data/users/etosato/ANM_Verona/src/cnn/tuning_results",
 
-    "label_column": "Group",
-
     "model_type": "densenet",
-    "epochs": 3,
+    "epochs": 4,
     "batch_size": 8,
     "lr": 0.001,
     "weight_decay": 0.001,
@@ -16,15 +14,17 @@
     "seed": 42,
     "optimizer": "adam",
 
+    "label_column": "Group",
     "group1": "ADNI",
     "group2": "PSP",
+    "threshold": "no_thr",
 
-    "run_id": 3,
-    "ckpt_path_evaluation": "/data/users/etosato/ANM_Verona/src/cnn/training_results/run1/best_model_fold3.pt",
+    "run_id": 1,
+    "ckpt_path_evaluation": "/data/users/etosato/ANM_Verona/src/cnn/training_results/run1/best_model_fold1.pt",
 
-    "crossval_flag": true,
-    "tuning_flag": true,
-    "evaluation_flag": false,
+    "crossval_flag": false,
+    "tuning_flag": false,
+    "evaluation_flag": true,
 
     "plot": true,
     "training_csv": true

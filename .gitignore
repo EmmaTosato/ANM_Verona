@@ -15,8 +15,8 @@ data/
 # Ignore images
 output/
 
-# Ignore checkpoints
-checkpoints/
+# Ignore training_results
+training_results/
 
 # Ignore tuning results
 tuning_results/

@@ -5,24 +5,25 @@
     "checkpoints_dir": "/data/users/etosato/ANM_Verona/src/cnn/checkpoints",
 
     "label_column": "Group",
+
     "model_type": "densenet",
-    "epochs": 2,
+    "epochs": 3,
     "batch_size": 8,
-    "lr": 0.0001,
+    "lr": 0.001,
     "weight_decay": 0.001,
-    "n_folds": 3,
+    "n_folds": 2,
     "seed": 42,
     "optimizer": "adam",
 
     "group1": "ADNI",
     "group2": "PSP",
 
-    "checkpoint_id": 5,
-    "ckpt_path_evaluation": "",
-    "log_name": "log_total",
+    "checkpoint_id": 3,
+    "ckpt_path_evaluation": "/data/users/etosato/ANM_Verona/src/cnn/checkpoints/checkpoint1/best_model_fold3.pt",
 
     "crossval_flag": true,
-    "tuning_flag": false,
-    "evaluation_flag": true,
-    "plot": true
+    "tuning_flag": true,
+    "evaluation_flag": false,
+    "plot": true,
+    "training_csv": true
 }

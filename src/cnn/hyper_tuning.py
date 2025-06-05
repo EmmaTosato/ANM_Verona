@@ -26,7 +26,6 @@ def tuning(base_args_path, grid_path):
 
     for i, combo in enumerate(combinations):
         config_id = i + 1
-        print(f"\nRunning tuning{run_id} - config{config_id}...")
 
         # Prepare parameters for this config
         params = deepcopy(args)
@@ -40,23 +39,22 @@ def tuning(base_args_path, grid_path):
         # Set output paths
         config_dir = os.path.join(run_dir, f"config{config_id}")
         os.makedirs(config_dir, exist_ok=True)
-        params["checkpoints_dir"] = config_dir
+        params["runs_dir"] = config_dir
         params["plot_dir"] = config_dir
 
-        # Run training
         result = main_worker(params)
 
         # Collect results for CSV
-        result["config"] = f"config{config_id}"  # chiave unica, prima colonna
+        result.update(combo_params)
+        result["config"] = f"config{config_id}"
         all_results.append(result)
 
     # Save full grid results to CSV
     results_df = pd.DataFrame(all_results)
+    cols = ['config'] + [col for col in results_df.columns if col != 'config']
+    results_df = results_df[cols]
     results_df.to_csv(os.path.join(run_dir, "grid_results.csv"), index=False)
 
-    print("\n\n----------------------------------------------------------------")
-    print(f"Fine tuning run {run_id} completed")
-    print("----------------------------------------------------------------")
 
 if __name__ == '__main__':
     base_args_path = "/data/users/etosato/ANM_Verona/src/cnn/parameters/config.json"

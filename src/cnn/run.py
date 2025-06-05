@@ -65,7 +65,7 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
     if params['plot']:
         title = f"Training curves - {params['group1'].upper()} vs {params['group2'].upper()} ({params['model_type'].upper()} - Fold {fold})"
         filename_base = f"{params['model_type']}_{params['group1']}_vs_{params['group2']}_fold_{fold}"
-        temp_dir_out= os.path.join(params['checkpoints_dir_actual'], "plots")
+        temp_dir_out= os.path.join(params['actual_run_dir'], "plots")
         os.makedirs(temp_dir_out, exist_ok=True)
 
         # Plot without accuracy
@@ -86,7 +86,7 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
             'Val Accuracy': val_accuracies
         })
 
-        excel_path = os.path.join(params['checkpoints_dir_actual'], "training_folds.xlsx")
+        excel_path = os.path.join(params['actual_run_dir'], "training_folds.xlsx")
 
         if os.path.exists(excel_path):
             with pd.ExcelWriter(excel_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
@@ -120,14 +120,14 @@ def create_training_summary(params, best_fold_info, fold_accuracies, fold_val_lo
 
 
 def main_worker(params):
-    # Handle checkpoint subdirectory
+    # Handle run subdirectory
     if params.get("tuning_flag", False):
-        ckpt_dir = params["checkpoints_dir"]
+        ckpt_dir = params["runs_dir"]
     else:
-        ckpt_dir = os.path.join(params["checkpoints_dir"], f"checkpoint{params['run_id']}")
+        ckpt_dir = os.path.join(params["runs_dir"], f"run{params['run_id']}")
 
     os.makedirs(ckpt_dir, exist_ok=True)
-    params["checkpoints_dir_actual"] = ckpt_dir
+    params["actual_run_dir"] = ckpt_dir
 
     # Re-direct the output
     if params.get("tuning_flag", False):
@@ -215,7 +215,7 @@ def main_worker(params):
                 raise ValueError(f"Unsupported optimizer: {params['optimizer']}")
 
             # Run epochs
-            params['ckpt_path_evaluation'] = os.path.join(params['checkpoints_dir_actual'],f"best_model_fold{fold + 1}.pt")
+            params['ckpt_path_evaluation'] = os.path.join(params['actual_run_dir'],f"best_model_fold{fold + 1}.pt")
             best_accuracy, best_train_loss, best_val_loss, best_epoch = run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fold + 1 )
 
             # Save accuracy
@@ -238,7 +238,7 @@ def main_worker(params):
         print("=================================")
         print("=== CROSS VALIDATION SUMMARY ====")
         print("=================================")
-        print(f"Checkpoint: checkpoint{params['run_id']}")
+        print(f"Run number:{params['run_id']}")
         print(f"Group: {params['group1']} vs {params['group2']}")
         print(f"Best fold: {best_fold_info['fold']}")
         print(f"Best epoch of that fold: {best_fold_info['epoch']}")
@@ -249,7 +249,7 @@ def main_worker(params):
         print(f"Best model path: {best_fold_info['model_path']}\n\n")
 
         if not params.get("tuning_flag", False):
-            summary_path = os.path.join(params['checkpoints_dir'], "all_training_results.csv")
+            summary_path = os.path.join(params['runs_dir'], "all_training_results.csv")
             row_summary = create_training_summary(params, best_fold_info, fold_accuracies, fold_val_losses)
 
             df_summary = pd.DataFrame([row_summary])
@@ -306,9 +306,9 @@ def main_worker(params):
             print(f"{k:<{max_key_len}} : {v:.3f}")
 
         # CSV summary
-        results_path = os.path.join(params['checkpoints_dir'], "all_testing_results.csv")
+        results_path = os.path.join(params['runs_dir'], "all_testing_results.csv")
         row = {
-            'checkpoint': f"checkpoint{params['run_id']}",
+            'run id': f"checkpoint{params['run_id']}",
             'current fold': checkpoint.get("fold", "-"),
             'model type': params['model_type'],
             'group': f"{params['group1']} vs {params['group2']}",
@@ -331,7 +331,7 @@ def main_worker(params):
         if params.get('plot'):
             title = f"Confusion Matrix - {params['group1'].upper()} vs {params['group2'].upper()} ({params['model_type'].upper()})"
             filename = f"{params['model_type']}_{params['group1']}_vs_{params['group2']}_conf_matrix.png"
-            save_path = os.path.join(params['checkpoints_dir_actual'], filename)
+            save_path = os.path.join(params['actual_run_dir'], filename)
             class_names = sorted(test_df[params['label_column']].unique())
             plot_confusion_matrix(metrics['confusion_matrix'], class_names, save_path= save_path, title = title)
 

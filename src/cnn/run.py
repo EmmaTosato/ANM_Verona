@@ -99,21 +99,49 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
     return best_accuracy, best_train_loss, best_val_loss, best_epoch
 
 
+def create_training_summary(params, best_fold_info, fold_accuracies, fold_val_losses):
+    return {
+        'run id': params['run_id'],
+        'group': f"{params['group1']} vs {params['group2']}",
+        'best fold': best_fold_info['fold'],
+        'best epoch': best_fold_info['epoch'],
+        'best accuracy': round(best_fold_info['accuracy'], 4),
+        'average accuracy': round(np.mean(fold_accuracies), 4),
+        'average validation loss': round(np.mean(fold_val_losses), 4),
+        'checkpoint_path': best_fold_info['model_path'],
+        'model_type': params['model_type'],
+        'optimizer': params['optimizer'],
+        'lr': params['lr'],
+        'batch_size': params['batch_size'],
+        'weight_decay': params['weight_decay'],
+        'epochs': params['epochs']
+    }
+
+
+
 def main_worker(params):
     # Handle checkpoint subdirectory
-    ckpt_dir = os.path.join(params["checkpoints_dir"], f"checkpoint{params['checkpoint_id']}")
+    if params.get("tuning_flag", False):
+        ckpt_dir = params["checkpoints_dir"]
+    else:
+        ckpt_dir = os.path.join(params["checkpoints_dir"], f"checkpoint{params['run_id']}")
+
     os.makedirs(ckpt_dir, exist_ok=True)
     params["checkpoints_dir_actual"] = ckpt_dir
 
     # Re-direct the output
-    if params['crossval_flag'] and not params['evaluation_flag']:
-        log_filename = f"log_train{params['checkpoint_id']}"
+    if params.get("tuning_flag", False):
+        run_id = params["run_id"]
+        config_id = params["config_id"]
+        log_filename = f"log_train_run{run_id}_config{config_id}"
+    elif params['crossval_flag'] and not params['evaluation_flag']:
+        log_filename = f"log_train{params['run_id']}"
     elif not params['crossval_flag'] and params['evaluation_flag']:
-        log_filename = f"log_test{params['checkpoint_id']}"
+        log_filename = f"log_test{params['run_id']}"
     elif params['crossval_flag'] and params['evaluation_flag']:
-        log_filename = f"log_total{params['checkpoint_id']}"
+        log_filename = f"log_total{params['run_id']}"
     else:
-        log_filename = f"log_misc{params['checkpoint_id']}"
+        log_filename = f"log_misc{params['run_id']}"
 
     log_path = os.path.join(ckpt_dir, log_filename)
     sys.stdout = open(log_path, "w")
@@ -210,7 +238,7 @@ def main_worker(params):
         print("=================================")
         print("=== CROSS VALIDATION SUMMARY ====")
         print("=================================")
-        print(f"Checkpoint: checkpoint{params['checkpoint_id']}")
+        print(f"Checkpoint: checkpoint{params['run_id']}")
         print(f"Group: {params['group1']} vs {params['group2']}")
         print(f"Best fold: {best_fold_info['fold']}")
         print(f"Best epoch of that fold: {best_fold_info['epoch']}")
@@ -220,32 +248,15 @@ def main_worker(params):
         print(f"Average validation loss: {np.mean(fold_val_losses):.4f}")
         print(f"Best model path: {best_fold_info['model_path']}\n\n")
 
-        # Csv saving
-        # Save summary of training run in a global cumulative CSV
-        summary_path = os.path.join(params['checkpoints_dir'], "all_training_results.csv")
-        row_summary = {
-            'checkpoint': f"checkpoint{params['checkpoint_id']}",
-            'group': f"{params['group1']} vs {params['group2']}",
-            'best fold': best_fold_info['fold'],
-            'best epoch': best_fold_info['epoch'],
-            'best accuracy': round(best_fold_info['accuracy'], 4),
-            'average accuracy': round(np.mean(fold_accuracies), 4),
-            'average validation loss': round(np.mean(fold_val_losses), 4),
-            'checkpoint_path': best_fold_info['model_path'],
-            'model_type': params['model_type'],
-            'optimizer': params['optimizer'],
-            'lr': params['lr'],
-            'batch_size': params['batch_size'],
-            'weight_decay': params['weight_decay'],
-            'epochs': params['epochs']
-        }
+        if not params.get("tuning_flag", False):
+            summary_path = os.path.join(params['checkpoints_dir'], "all_training_results.csv")
+            row_summary = create_training_summary(params, best_fold_info, fold_accuracies, fold_val_losses)
 
-        df_summary = pd.DataFrame([row_summary])
-        if os.path.exists(summary_path):
-            df_summary.to_csv(summary_path, mode='a', header=False, index=False)
-        else:
-            df_summary.to_csv(summary_path, index=False)
-
+            df_summary = pd.DataFrame([row_summary])
+            if os.path.exists(summary_path):
+                df_summary.to_csv(summary_path, mode='a', header=False, index=False)
+            else:
+                df_summary.to_csv(summary_path, index=False)
 
         # Return results for fine-tuning
         if params['tuning_flag']:
@@ -297,7 +308,7 @@ def main_worker(params):
         # CSV summary
         results_path = os.path.join(params['checkpoints_dir'], "all_testing_results.csv")
         row = {
-            'checkpoint': f"checkpoint{params['checkpoint_id']}",
+            'checkpoint': f"checkpoint{params['run_id']}",
             'current fold': checkpoint.get("fold", "-"),
             'model type': params['model_type'],
             'group': f"{params['group1']} vs {params['group2']}",

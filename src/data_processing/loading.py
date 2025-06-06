@@ -55,7 +55,7 @@ def gmm_label_CDR(df_meta):
     np.random.seed(42)
     x_gmm = df_cdr['CDR_SB'].values.reshape(-1, 1)
     gmm = GaussianMixture(n_components=3, random_state=42).fit(x_gmm)
-    df_cdr['GMM_Label_CDR'] = gmm.predict(x_gmm)
+    df_cdr['labels_gmm_cdr'] = gmm.predict(x_gmm)
 
     # Reorder labels by CDR_SB severity
     means = df_cdr.groupby('GMM_Label_CDR')['CDR_SB'].mean().sort_values()

@@ -67,6 +67,8 @@ def summarize_voxel_data(df_masked, threshold=None):
 
 
 def main_processing_flat(df, df_meta, gm_mask_path, harvard_mask_path, do_eda=False):
+    df_summary = None
+
     # Align metadata to raw_df
     df_meta = df_meta.set_index('ID').loc[df['ID']].reset_index()
     assert all(df['ID'] == df_meta['ID']), "Mismatch between ID of df and df_meta_ordered"

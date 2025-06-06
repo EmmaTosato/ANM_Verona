@@ -116,7 +116,7 @@ def main_clustering(df_masked, df_meta, title, path_umap=None, path_cluster=None
         'X1': x_umap[:, 0],
         'X2': x_umap[:, 1],
         'group': df_merged['Group'],
-        'gmm_label_cdr': df_merged['GMM_Label_CDR'],
+        'labels_gmm_cdr': df_merged['labels_gmm_cdr'],
         'ID': df_merged['ID']
     })
 

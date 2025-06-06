@@ -58,14 +58,14 @@ def gmm_label_CDR(df_meta):
     df_cdr['labels_gmm_cdr'] = gmm.predict(x_gmm)
 
     # Reorder labels by CDR_SB severity
-    means = df_cdr.groupby('GMM_Label_CDR')['CDR_SB'].mean().sort_values()
+    means = df_cdr.groupby('labels_gmm_cdr')['CDR_SB'].mean().sort_values()
     label_map = {old: new for new, old in enumerate(means.index)}
-    df_cdr['GMM_Label_CDR'] = df_cdr['GMM_Label_CDR'].map(label_map)
+    df_cdr['labels_gmm_cdr'] = df_cdr['labels_gmm_cdr'].map(label_map)
 
     # Include in metadata
-    label_map = dict(zip(df_cdr['ID'], df_cdr['GMM_Label_CDR']))
-    df_meta = df_meta.drop(columns=['GMM_Label_CDR'], errors='ignore')
-    df_meta['GMM_Label_CDR'] = df_meta['ID'].map(label_map).astype('Int64')
+    label_map = dict(zip(df_cdr['ID'], df_cdr['labels_gmm_cdr']))
+    df_meta = df_meta.drop(columns=['labels_gmm_cdr'], errors='ignore')
+    df_meta['labels_gmm_cdr'] = df_meta['ID'].map(label_map).astype('Int64')
 
     return df_meta
 
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     df_meta = gmm_label_CDR(df_meta)
 
     # Save the metadata dataframes as csv
-    df_meta.to_csv(os.path.join(config['df_meta']))
+    df_meta.to_csv(os.path.join(config['df_meta']), index=False)
 
     # Load the raw dataframes
     print("Loading FC maps...")

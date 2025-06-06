@@ -3,15 +3,16 @@
   "df_masked": "data/dataframes/fdc/df_gm.pkl" ,
 
   "prefix_cluster": "FDC maps - No threshold",
+  "prefix_regression": "FDC maps - No threshold",
+
   "plot_cluster": true,
   "plot_evaluation": true,
+  "plot_regression": true,
 
-  "prefix_regression": "FDC maps - No threshold",
   "target_variable": "CDR_SB",
   "covariates": ["Sex", "Age", "Education"],
   "y_log_transform": false,
-  "plot_regression": false,
-  "cluster_regression": false,
 
-  "cluster_col": "GMM_Label_CDR_SB"
+  "cluster_regression": true,
+  "cluster_col": "labels_km"
 }

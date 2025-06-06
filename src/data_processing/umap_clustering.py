@@ -130,9 +130,10 @@ def main_clustering(df_masked, df_meta, title, path_umap=None, path_cluster=None
         title_cluster = title + " GMM Label"
         plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['gmm_label_cdr'], path_cluster, title_cluster, margin=1.5, plot_flag=plot_flag)
 
-    # Add clustering labels into df_meta
-    df_meta = df_meta.merge(labeling_umap[['ID', 'labels_km', 'labels_hdb']], on='ID', how='left')
-
+    # Merge and save only if clustering columns are not already present
+    if 'labels_km' not in df_meta.columns and 'labels_hdb' not in df_meta.columns:
+        df_meta = df_meta.merge(labeling_umap[['ID', 'labels_km', 'labels_hdb']], on='ID', how='left')
+        df_meta.to_csv(config['df_meta'], index=False)
 
     return labeling_umap, x_umap
 

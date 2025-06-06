@@ -177,7 +177,6 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
     subject_errors, group_rmse_stats = compute_rmse_per_subject(df_merged, y_pred, residuals)
     subject_errors_sorted = subject_errors.sort_values(by='RMSE').reset_index(drop=True)
 
-
     # Plot diagnostics if requested
     if plot_flag or save_path:
         plot_ols_diagnostics(y, y_pred, residuals, title=title_prefix, save_path=save_path, plot_flag=plot_flag)
@@ -219,24 +218,36 @@ if __name__ == "__main__":
 
     config.update(run)
 
-    # Set output directory and redirect stdout
-    output_dir = f'{config["path_umap_regression"]}_{config["target_variable"]}'
-    sys.stdout = open(os.path.join(output_dir, config['log']), "w")
-
     # Load configuration and metadata
-    print("\nLoading config and metadata...")
     df_masked = pd.read_pickle(config['df_masked'])
     df_meta = pd.read_csv(config['df_meta'])
 
+    # Set output directory
+    output_dir = f'{config["path_umap_regression"]}_{config["target_variable"]}'
+    os.makedirs(output_dir, exist_ok=True)
+
     if config['cluster_regression']:
         cluster_col = config['cluster_col']
-        for cluster_id in sorted(df_meta[cluster_col].dropna().unique()):
+
+        # Modify output directory
+        output_dir = os.path.join(output_dir, cluster_col)
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Redirect stdout
+        log_name = f'{config["log"]}_{cluster_col}.txt'
+        sys.stdout = open(os.path.join(output_dir, log_name), "w")
+
+        # Run regression for each cluster
+        unique_clusters = df_meta[cluster_col].dropna().unique().astype(int)
+        for cluster_id in sorted(unique_clusters):
             print(f"\n=== Cluster {cluster_col} - {cluster_id} ===")
 
+            # Filter metadata and masked data for the current cluster
             ids = df_meta[df_meta[cluster_col] == cluster_id]["ID"]
             df_meta_cluster = df_meta[df_meta["ID"].isin(ids)].reset_index(drop=True)
             df_cluster = df_masked[df_masked["ID"].isin(ids)].reset_index(drop=True)
 
+            # Run regression for the current cluster
             model, y_pred, residuals, subject_errors, group_rmse_stats = main_regression(
                 df_masked=df_cluster,
                 df_meta=df_meta_cluster,
@@ -248,6 +259,9 @@ if __name__ == "__main__":
                 title_prefix=f"{cluster_col}_{cluster_id}"
             )
     else:
+        # Redirect stdout
+        sys.stdout = open(os.path.join(output_dir, config['log']), "w")
+
         # Run regression
         model, y_pred, residuals, subject_errors, group_rmse_stats = main_regression(
             df_masked=df_masked,

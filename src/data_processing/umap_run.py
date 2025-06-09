@@ -36,7 +36,7 @@ def x_features_return(df_voxel, df_labels):
 # --------------------------------------
 # Run UMAP and optionally save/show plot
 # --------------------------------------
-def run_umap(x_input, plot_flag=True, save_path=None, title="UMAP_Embedding"):
+def run_umap(x_input, plot_flag=True, save_path=None, title=None):
     reducer = umap.UMAP(
         n_neighbors=15, n_components=2, metric='euclidean', n_epochs=1000,
         learning_rate=1.0, init='spectral', min_dist=0.1, spread=1.0,
@@ -56,8 +56,8 @@ def run_umap(x_input, plot_flag=True, save_path=None, title="UMAP_Embedding"):
         plt.grid(True)
 
         if save_path:
-            clean_title = re.sub(r'[\s\-]+', '_', title.strip())
-            save_file = os.path.join(save_path, f"{clean_title}_Embedding.png")
+            clean_title = re.sub(r'[\s\-]+', '_', title.strip().lower())
+            save_file = os.path.join(save_path, f"{clean_title}_embedding.png")
             plt.savefig(save_file, dpi=300)
 
         if plot_flag:

@@ -1,18 +1,14 @@
 {
-  "log": "log_noThr",
   "df_masked": "data/dataframes/fdc/df_gm.pkl" ,
+  "threshold": false,
 
-  "prefix_cluster": "FDC maps - No threshold",
-  "prefix_regression": "FDC maps - No threshold",
-
-  "plot_cluster": true,
-  "plot_evaluation": true,
-  "plot_regression": true,
+  "plot_cluster": false,
+  "do_evaluation": true,
 
   "target_variable": "CDR_SB",
-  "covariates": ["Sex", "Age", "Education"],
-  "y_log_transform": false,
+  "plot_regression": false,
+  "flag_covariates": true,
 
-  "cluster_regression": true,
-  "cluster_col": "labels_km"
+  "group_regression": false,
+  "group_col": "labels_km"
 }

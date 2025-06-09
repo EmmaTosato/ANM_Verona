@@ -75,3 +75,5 @@ The UMAP and clustering ww have different paths:
 - Fit OLS model
 - Shuffling regression
 - Results are printed
+
+"Sex", "Age", "Education"

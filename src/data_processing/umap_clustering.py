@@ -75,9 +75,10 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column, save_path, 
 
     # Save figure if path provided
     if save_path:
-        clean_prefix = re.sub(r'[\s\-]+', '_', title_prefix.strip())
-        save_file = os.path.join(save_path, f"{clean_prefix}_Clustering.png")
+        clean_prefix = re.sub(r'[\s\-]+', '_', title_prefix.strip().lower())
+        save_file = os.path.join(save_path, f"{clean_prefix}_clustering.png")
         plt.savefig(save_file, dpi=300)
+
 
     # Show figure if requested
     if plot_flag:
@@ -91,51 +92,66 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column, save_path, 
 # ---------------------------
 # Main function
 # ---------------------------
-def main_clustering(df_masked, df_meta, title, path_umap=None, path_cluster=None, path_opt_cluster=None, plot_flag=True, do_eval=False):
+def main_clustering(df_masked, df_meta, title_prefix, path_umap=None, path_cluster=None, path_opt_cluster=None, plot_clustering=False, do_evaluation=False):
     # Merge voxel and metadata
     df_merged, x = x_features_return(df_masked, df_meta)
 
     # Reduce dimensionality with UMAP
-    x_umap = run_umap(x, plot_flag=True, save_path=path_umap, title=title)
+    x_umap = run_umap(x, plot_flag=plot_clustering, save_path=path_umap, title=title_prefix)
 
     # Evaluation of clustering
-    if do_eval:
+    if do_evaluation:
         print("Evaluating clustering algorithms...")
-        evaluate_kmeans(x_umap, save_path=path_opt_cluster, prefix=title, plot_flag=plot_flag)
-        evaluate_gmm(x_umap, save_path=path_opt_cluster, prefix=title, plot_flag=plot_flag)
-        evaluate_consensus(x_umap, save_path=path_opt_cluster, prefix=title, plot_flag=plot_flag)
+        clean_title = re.sub(r'[\s\-]+', '_', title_prefix.strip().lower())
+        evaluate_kmeans(x_umap, save_path=path_opt_cluster, prefix=clean_title, plot_flag=plot_clustering)
+        evaluate_gmm(x_umap, save_path=path_opt_cluster, prefix=clean_title, plot_flag=plot_clustering)
+        evaluate_consensus(x_umap, save_path=path_opt_cluster, prefix=clean_title, plot_flag=plot_clustering)
         evaluate_hdbscan(x_umap)
 
-    # Clustering
+    # Clustering and collect results
     labels_dict = run_clustering(x_umap)
-
-    # Collect results
     labeling_umap = pd.DataFrame({
-        'labels_hdb': labels_dict['HDBSCAN'],
-        'labels_km': labels_dict['K-Means'],
+        'ID': df_merged['ID'],
+        'group': df_merged['Group'],
         'X1': x_umap[:, 0],
         'X2': x_umap[:, 1],
-        'group': df_merged['Group'],
-        'labels_gmm_cdr': df_merged['labels_gmm_cdr'],
-        'ID': df_merged['ID']
+        'labels_hdb': labels_dict['HDBSCAN'],
+        'labels_km': labels_dict['K-Means'],
+        'labels_gmm_cdr': df_merged['labels_gmm_cdr']
     })
 
+    labeling_umap['labels_gmm_cdr'] = labeling_umap['labels_gmm_cdr'].astype('Int64')
+
     # Plot and save clusters
-    if plot_flag or path_cluster:
+    if plot_clustering or path_cluster:
         print("Running clustering...")
-        # Plot according to group
-        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['group'], path_cluster, title, margin=1.5, plot_flag=plot_flag)
+        # Plot according to diagnostic group
+        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['group'], path_cluster, title_prefix, margin=1.5, plot_flag=plot_clustering)
 
         # Plot according to gmm labels cdr
-        title_cluster = title + " GMM Label"
-        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['gmm_label_cdr'], path_cluster, title_cluster, margin=1.5, plot_flag=plot_flag)
+        title_cluster = title_prefix + " GMM label"
+        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['labels_gmm_cdr'], path_cluster, title_cluster, margin=1.5, plot_flag=plot_clustering)
 
-    # Merge and save only if clustering columns are not already present
-    if 'labels_km' not in df_meta.columns and 'labels_hdb' not in df_meta.columns:
-        df_meta = df_meta.merge(labeling_umap[['ID', 'labels_km', 'labels_hdb']], on='ID', how='left')
+    # Adding clustering columns according threshold
+    if config.get("threshold") in [0.1, 0.2]:
+        thr_suffix = f"_thr{str(config['threshold']).replace('.', '')}"
+        km_col = f"labels_km{thr_suffix}"
+        hdb_col = f"labels_hdb{thr_suffix}"
+
+        # Rinomina colonne
+        labeling_umap = labeling_umap.rename(columns={
+            "labels_km": km_col,
+            "labels_hdb": hdb_col
+        })
+    else:
+        km_col = "labels_km"
+        hdb_col = "labels_hdb"
+
+    if km_col not in df_meta.columns and hdb_col not in df_meta.columns:
+        df_meta = df_meta.merge(labeling_umap[['ID', km_col, hdb_col]], on='ID', how='left')
         df_meta.to_csv(config['df_meta'], index=False)
 
-    return labeling_umap, x_umap
+    return labeling_umap
 
 
 if __name__ == "__main__":
@@ -153,14 +169,21 @@ if __name__ == "__main__":
     df_masked = pd.read_pickle(config['df_masked'])
     df_meta = pd.read_csv(config['df_meta'])
 
+    # Check if threshold is set
+    if config.get("threshold") in [0.1, 0.2]:
+        config['prefix_cluster'] = f"{config['threshold']} Threshold"
+    else:
+        config['prefix_cluster'] = "No Threshold"
+
     # Run UMAP and clustering
-    labeling, x_umap = main_clustering(
+    umap_summary = main_clustering(
         df_masked,
         df_meta,
-        title=config['prefix_cluster'],
+        title_prefix=config['prefix_cluster'],
         path_umap=config['path_umap'],
         path_cluster=config['path_cluster'],
         path_opt_cluster=config['path_opt_cluster'],
-        plot_flag=config['plot_cluster'],
-        do_eval=config['plot_evaluation']
+        plot_clustering=config['plot_cluster'],
+        do_evaluation=config['do_evaluation']
     )
+

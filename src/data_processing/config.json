@@ -19,8 +19,10 @@
   "dir_fdc_df": "data/dataframes/fdc",
   "dir_yeo_df": "data/dataframes/networks",
 
-  "path_umap": "output/umap",
-  "path_cluster": "output/umap_cluster",
-  "path_opt_cluster": "output/umap_optimal_clusters",
-  "path_umap_regression" : "output/umap_regression"
+  "path_umap": "output/voxel/umap",
+  "path_cluster": "output/voxel/umap_cluster",
+  "path_opt_cluster": "output/voxel/umap_optimal_clusters",
+  "path_umap_regression" : "output/voxel/umap_regression",
+
+  "covariates": ["Sex", "Age", "Education"]
 }

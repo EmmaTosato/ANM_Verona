@@ -2,8 +2,8 @@
   "labels_path": "/data/users/etosato/ANM_Verona/data/labels.csv",
   "output_dir": "/data/users/etosato/ANM_Verona/data",
 
-  "group1": "ADNI",
-  "group2": "PSP",
+  "group1": "PSP",
+  "group2": "CBS",
   "label_column": "Group",
 
   "to_exclude": [],

@@ -4,6 +4,8 @@ import pandas as pd
 from itertools import product
 from copy import deepcopy
 from run import main_worker
+from utils import create_tuning_summary
+
 
 def tuning(base_args_path, grid_path):
     # Load fixed config and hyperparameter grid
@@ -42,19 +44,21 @@ def tuning(base_args_path, grid_path):
         params["runs_dir"] = config_dir
         params["plot_dir"] = config_dir
 
+        # Run training
         result = main_worker(params)
 
         # Collect results for CSV
-        result.update(combo_params)
-        result["config"] = f"config{config_id}"
-        all_results.append(result)
+        summary_row = create_tuning_summary(config_id, params, result)
+        all_results.append(summary_row)
+
 
     # Save full grid results to CSV
     results_df = pd.DataFrame(all_results)
-    cols = ['config'] + [col for col in results_df.columns if col != 'config']
+    first_cols = ["config", "group", "threshold"]
+    remaining_cols = [col for col in results_df.columns if col not in first_cols]
+    cols = first_cols + remaining_cols
     results_df = results_df[cols]
     results_df.to_csv(os.path.join(run_dir, "grid_results.csv"), index=False)
-
 
 if __name__ == '__main__':
     base_args_path = "/data/users/etosato/ANM_Verona/src/cnn/parameters/config.json"

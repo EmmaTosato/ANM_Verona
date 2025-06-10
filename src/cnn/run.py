@@ -13,8 +13,11 @@ import json
 import random
 import sys
 from openpyxl import load_workbook
-
 from pandas import ExcelWriter
+from utils import (
+    create_training_summary,
+    create_testing_summary
+)
 
 
 def set_seed(seed):
@@ -97,26 +100,6 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
 
 
     return best_accuracy, best_train_loss, best_val_loss, best_epoch
-
-
-def create_training_summary(params, best_fold_info, fold_accuracies, fold_val_losses):
-    return {
-        'run id': f"run{params['run_id']}",
-        'group': f"{params['group1']} vs {params['group2']}",
-        'threshold': params.get("threshold", "unspecified"),
-        'best fold': best_fold_info['fold'],
-        'best epoch': best_fold_info['epoch'],
-        'best accuracy': round(best_fold_info['accuracy'], 4),
-        'average accuracy': round(np.mean(fold_accuracies), 4),
-        'average validation loss': round(np.mean(fold_val_losses), 4),
-        'model_type': params['model_type'],
-        'optimizer': params['optimizer'],
-        'lr': params['lr'],
-        'batch_size': params['batch_size'],
-        'weight_decay': params['weight_decay'],
-        'epochs': params['epochs']
-    }
-
 
 
 def main_worker(params):
@@ -253,6 +236,8 @@ def main_worker(params):
             row_summary = create_training_summary(params, best_fold_info, fold_accuracies, fold_val_losses)
 
             df_summary = pd.DataFrame([row_summary])
+
+            # Create or append
             if os.path.exists(summary_path):
                 df_summary.to_csv(summary_path, mode='a', header=False, index=False)
             else:
@@ -292,13 +277,19 @@ def main_worker(params):
         y_true, y_pred = evaluate(model, test_loader, device)
         metrics = compute_metrics(y_true, y_pred)
 
+        # Compute group counts in test set
+        group_counts = test_df[params['label_column']].value_counts().to_dict()
+
         print("===========================")
         print("=== EVALUATION SUMMARY ====")
         print("===========================")
-        print(f"Model path: {params['ckpt_path_evaluation']}")
+        print(f"Model path: {params['ckpt_path_evaluation']}\n")
         print(f"Model type: {params['model_type']}")
         print(f"Best fold: {checkpoint.get('fold', '-')}")
         print(f"Best epoch: {checkpoint.get('epoch', '-')}\n")
+        print(f"Test set size: {len(test_df)}")
+        print(f"{params['group1']}: {group_counts.get(params['group1'], 0)} subjects")
+        print(f"{params['group2']}: {group_counts.get(params['group2'], 0)} subjects\n")
         print("Metrics on test set:")
         metrics_main = {k: v for k, v in metrics.items() if k != "confusion_matrix"}
         max_key_len = max(len(k) for k in metrics_main)
@@ -307,18 +298,10 @@ def main_worker(params):
 
         # CSV summary
         results_path = os.path.join(params['runs_dir'], "all_testing_results.csv")
-        row = {
-            'run id': f"run{params['run_id']}",
-            'group': f"{params['group1']} vs {params['group2']}",
-            'threshold': params.get("threshold", "unspecified"),
-            'current fold': checkpoint.get("fold", "-"),
-            'best epoch': checkpoint.get("epoch", "-"),
-        }
-
-        metrics_rounded = {k: round(v, 3) for k, v in metrics.items() if k != "confusion_matrix"}
-
-        row.update(metrics_rounded)
+        row = create_testing_summary(params, metrics)
         df = pd.DataFrame([row])
+
+        # Create or append
         if os.path.exists(results_path):
             df.to_csv(results_path, mode='a', header=False, index=False, float_format="%.3f")
         else:

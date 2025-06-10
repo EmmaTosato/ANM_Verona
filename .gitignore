@@ -15,7 +15,7 @@ data/
 # Ignore images
 output/
 
-# Ignore training_results
+# Ignore runs
 training_results/
 
 # Ignore tuning results

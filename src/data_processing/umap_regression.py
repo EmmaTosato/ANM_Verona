@@ -146,6 +146,14 @@ def plot_actual_vs_predicted(target, predictions, title, save_path=None, plot_fl
     if plot_flag:
         plt.show()
 
+def group_value_to_str(value):
+    if pd.isna(value):
+        return "nan"
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
 # ------------------------------------------------------------
 # Main regression pipeline
 # ------------------------------------------------------------
@@ -165,7 +173,7 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
         y = np.log1p(y)
 
     # Reduce dimensionality with UMAP
-    x_umap = run_umap(x, plot_flag=False, save_path = None, title = '')
+    x_umap = run_umap(x, plot_flag=False, save_path = None, title = None)
 
     # Regression with OLS
     x_ols = build_design_matrix(df_merged, x_umap, covariates)
@@ -231,11 +239,11 @@ if __name__ == "__main__":
 
     # Check if threshold is set
     if config.get("threshold") in [0.1, 0.2]:
-        config['log']  = f"log_{config['threshold']}Thr"
-        config['prefix_regression'] = f"{config['threshold']} Threshold"
+        config['log']  = f"log_{config['threshold']}_thr"
+        config['prefix_regression'] = f"{config['threshold']} Thr"
     else:
-        config['log'] = "log_noThr"
-        config['prefix_regression'] = "No Threshold"
+        config['log'] = "log_no_thr"
+        config['prefix_regression'] = "No Thr"
 
     # Check if covariates are present and modify titles and path
     if config['flag_covariates']:
@@ -244,42 +252,54 @@ if __name__ == "__main__":
         output_dir = os.path.join(output_dir, "covariates")
         os.makedirs(output_dir, exist_ok=True)
     else:
+        config['covariates'] = None
         output_dir = os.path.join(output_dir, "no_covariates")
         os.makedirs(output_dir, exist_ok=True)
 
     if config['group_regression']:
-            group_col = config['group_col']
+        group_col = config['group_col']
 
-            # Modify output directory
-            output_dir = os.path.join(output_dir, group_col)
-            os.makedirs(output_dir, exist_ok=True)
+        # Crea directory principale per il group_col
+        output_dir = os.path.join(output_dir, re.sub(r'[\s\-]+', '_', group_col.strip().lower()))
+        os.makedirs(output_dir, exist_ok=True)
 
-            # Redirect stdout
-            log_name = f'{config["log"]}_{group_col}.txt'
-            sys.stdout = open(os.path.join(output_dir, log_name), "w")
+        # Estrai i gruppi unici (senza NaN)
+        unique_groups = df_meta[group_col].dropna().unique()
 
-            # Run regression for each group
-            unique_groups = df_meta[group_col].dropna().unique().astype(int)
-            for group_id in sorted(unique_groups):
-                print(f"\n=== Group by {group_col} - {group_id} ===")
+        for group_id in sorted(unique_groups):
+            group_id_str = group_value_to_str(group_id)
 
-                # Filter metadata and masked data for the current group
-                ids = df_meta[df_meta[group_col] == group_id]["ID"]
-                df_meta_cluster = df_meta[df_meta["ID"].isin(ids)].reset_index(drop=True)
-                df_cluster = df_masked[df_masked["ID"].isin(ids)].reset_index(drop=True)
+            # Crea sottocartella per ogni gruppo
+            output_dir_group = os.path.join(output_dir, group_id_str)
+            os.makedirs(output_dir_group, exist_ok=True)
 
-                # Run regression for the current group
-                model, y_pred, residuals, subject_errors, group_rmse_stats = main_regression(
-                    df_masked=df_cluster,
-                    df_meta=df_meta_cluster,
-                    target_variable=config["target_variable"],
-                    covariates=config['covariates'],
-                    y_log_transform=config.get('y_log_transform', False),
-                    plot_flag=config["plot_regression"],
-                    save_path=output_dir,
-                    title_prefix=f"{group_col}_{group_id}"
-                )
+            # Log file specifico per il gruppo
+            log_name = f'{config["log"]}_{group_col}_{group_id_str}.txt'
+            sys.stdout = open(os.path.join(output_dir_group, log_name), "w")
+
+            print(f"\n=== Group by {group_col} - {group_id_str} ===")
+
+            # Filtra i dati per gruppo
+            ids = df_meta[df_meta[group_col] == group_id]["ID"]
+            df_meta_cluster = df_meta[df_meta["ID"].isin(ids)].reset_index(drop=True)
+            df_cluster = df_masked[df_masked["ID"].isin(ids)].reset_index(drop=True)
+
+            # Esegui la regressione
+            model, y_pred, residuals, subject_errors, group_rmse_stats = main_regression(
+                df_masked=df_cluster,
+                df_meta=df_meta_cluster,
+                target_variable=config["target_variable"],
+                covariates=config['covariates'],
+                y_log_transform=config.get('y_log_transform', False),
+                plot_flag=config["plot_regression"],
+                save_path=output_dir_group,
+                title_prefix=f"{config['prefix_regression']} - {group_col}_{group_id_str}"
+            )
     else:
+        # Modify output directory
+        output_dir = os.path.join(output_dir, 'all')
+        os.makedirs(output_dir, exist_ok=True)
+
         # Redirect stdout
         sys.stdout = open(os.path.join(output_dir, config['log']), "w")
 

@@ -47,22 +47,44 @@ def run_umap(x_input, plot_flag=True, save_path=None, title=None):
     print("Running UMAP...\n")
     x_umap = reducer.fit_transform(x_input)
 
-    if plot_flag or save_path:
-        plt.figure(figsize=(6, 4))
-        plt.scatter(x_umap[:, 0], x_umap[:, 1], s=10, alpha=0.6)
-        plt.title(f'{title} - UMAP Embedding')
-        plt.xlabel("UMAP 1")
-        plt.ylabel("UMAP 2")
-        plt.grid(True)
+    plt.figure(figsize=(6, 4))
 
-        if save_path:
-            clean_title = re.sub(r'[\s\-]+', '_', title.strip().lower())
-            save_file = os.path.join(save_path, f"{clean_title}_embedding.png")
-            plt.savefig(save_file, dpi=300)
+    dot_color = "#d74c4c"
 
-        if plot_flag:
-            plt.show()
+    plt.scatter(
+        x_umap[:, 0], x_umap[:, 1],
+        s=50,
+        alpha=0.9,
+        color=dot_color,
+        edgecolor='black',
+        linewidth=0.5
+    )
 
-        plt.close()
+    plt.title(f' UMAP Embedding - {title}', fontsize=14, fontweight='bold')
+    plt.xlabel("UMAP 1", fontsize=12, fontweight='bold')
+    plt.ylabel("UMAP 2", fontsize=12, fontweight='bold')
+
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_linewidth(1)
+    ax.spines['left'].set_linewidth(1)
+    ax.spines['bottom'].set_edgecolor('black')
+    ax.spines['left'].set_edgecolor('black')
+
+    plt.grid(False)
+    plt.xticks([])
+    plt.yticks([])
+
+    if save_path:
+        clean_title = re.sub(r'[\s\-]+', '_', title.strip().lower())
+        save_file = os.path.join(save_path, f"{clean_title}_embedding.png")
+        plt.savefig(save_file, dpi=300)
+
+    if plot_flag:
+        plt.show()
+
+    plt.close()
+
 
     return x_umap

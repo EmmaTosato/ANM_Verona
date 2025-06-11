@@ -36,7 +36,7 @@ def run_clustering(x_umap):
 # ---------------------------------------
 # Plot clustering results vs group labels
 # ---------------------------------------
-def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column, save_path, title_prefix, margin = 1.8, plot_flag=True):
+def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column, save_path, title_prefix, margin=2.0, plot_flag=True, colors_gmm=False):
     n = len(labels_dictionary)
     n_cols = 2
     n_rows = n
@@ -44,8 +44,16 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column, save_path, 
     x_min, x_max = x_umap[:, 0].min() - margin, x_umap[:, 0].max() + margin
     y_min, y_max = x_umap[:, 1].min() - margin, x_umap[:, 1].max() + margin
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 10))
+    # Define color palettes
+    left_plot_col = ['#74c476', '#f44f39', '#40b7ad', '#fd8d3c', '#37659e','#fbbabd', '#ffdb24', '#413d7b', '#9dd569', '#e84a9b','#056c39', '#6788ee']
 
+    if colors_gmm:
+        right_plot_col = sns.color_palette("Set2")[2:]
+    else:
+        right_plot_col = sns.color_palette("Set2")
+
+    # Create figure
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 10))
 
     for i, (title, labels) in enumerate(labels_dictionary.items()):
         ax_left = axes[i, 0]
@@ -58,29 +66,40 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column, save_path, 
             'label': group_column
         })
 
-        sns.scatterplot(data=plot_df, x='X1', y='X2', hue='cluster',palette='Set1', s=50, ax=ax_left, legend='full')
-        ax_left.set_title(f'{title} - Clustering after UMAP')
+        plot_df = plot_df.dropna(subset=['label'])
+
+        # Left plot (clustering)
+        sns.scatterplot(data=plot_df, x='X1', y='X2', hue='cluster', palette=left_plot_col, s=50, ax=ax_left)
+        ax_left.legend(loc='best', title='cluster', fontsize='small', title_fontsize='medium')
+        ax_left.set_title(f'{title}', fontweight='bold')
+        ax_left.set_xlabel("X1", fontsize=11, fontweight='bold')
+        ax_left.set_ylabel("X2", fontsize=11, fontweight='bold')
         ax_left.set_xlim(x_min, x_max)
         ax_left.set_ylim(y_min, y_max)
 
-        sns.scatterplot(data=plot_df, x='X1', y='X2', hue='label',palette='Set2', s=50, ax=ax_right, legend='full')
-        ax_right.set_title(f'{title} - Labeling according to {group_column.name}')
+        # Right plot (labeling)
+        sns.scatterplot(data=plot_df, x='X1', y='X2', hue='label',palette=right_plot_col, s=50, ax=ax_right)
+        ax_right.legend(loc='best', title='label', fontsize='small', title_fontsize='medium')
+        ax_right.set_title(f'{title} - Labeling according to {group_column.name}', fontweight='bold')
+        ax_right.set_xlabel("X1", fontsize=11, fontweight='bold')
+        ax_right.set_ylabel("X2", fontsize=11, fontweight='bold')
         ax_right.set_xlim(x_min, x_max)
         ax_right.set_ylim(y_min, y_max)
 
+    # Adjust layout
     plt.tight_layout()
-    plt.subplots_adjust(top=0.9)
-    main_title = f"{title_prefix} - Clustering Results"
-    plt.suptitle(main_title, fontsize=18)
+    plt.subplots_adjust(top=0.87, hspace=0.35)
+    plt.text(0.5, 1.00, "Clustering Results", fontsize=20, fontweight='bold', ha='center',
+             transform=plt.gcf().transFigure)
+    plt.text(0.5, 0.94, title_prefix, fontsize=18, ha='center', transform=plt.gcf().transFigure)
 
-    # Save figure if path provided
+    # Save
     if save_path:
         clean_prefix = re.sub(r'[\s\-]+', '_', title_prefix.strip().lower())
         save_file = os.path.join(save_path, f"{clean_prefix}_clustering.png")
-        plt.savefig(save_file, dpi=300)
+        plt.savefig(save_file, dpi=300, bbox_inches='tight')
 
 
-    # Show figure if requested
     if plot_flag:
         plt.show()
 
@@ -120,17 +139,17 @@ def main_clustering(df_masked, df_meta, title_prefix, path_umap=None, path_clust
         'labels_gmm_cdr': df_merged['labels_gmm_cdr']
     })
 
-    labeling_umap['labels_gmm_cdr'] = labeling_umap['labels_gmm_cdr'].astype('Int64')
 
     # Plot and save clusters
     if plot_clustering or path_cluster:
         print("Running clustering...")
         # Plot according to diagnostic group
-        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['group'], path_cluster, title_prefix, margin=1.5, plot_flag=plot_clustering)
+        title_cluster1 = title_prefix + " - Group label"
+        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['group'], path_cluster, title_cluster1, margin=2.0, plot_flag=plot_clustering)
 
         # Plot according to gmm labels cdr
-        title_cluster = title_prefix + " GMM label"
-        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['labels_gmm_cdr'], path_cluster, title_cluster, margin=1.5, plot_flag=plot_clustering)
+        title_cluster2 = title_prefix + " - GMM label"
+        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['labels_gmm_cdr'], path_cluster, title_cluster2, margin= 2.0, plot_flag=plot_clustering, colors_gmm= True)
 
     # Adding clustering columns according threshold
     if config.get("threshold") in [0.1, 0.2]:
@@ -149,7 +168,8 @@ def main_clustering(df_masked, df_meta, title_prefix, path_umap=None, path_clust
 
     if km_col not in df_meta.columns and hdb_col not in df_meta.columns:
         df_meta = df_meta.merge(labeling_umap[['ID', km_col, hdb_col]], on='ID', how='left')
-        df_meta.to_csv(config['df_meta'], index=False)
+    df_meta['labels_gmm_cdr'] = df_meta['labels_gmm_cdr'].astype('Int64')
+    df_meta.to_csv(config['df_meta'], index=False)
 
     return labeling_umap
 
@@ -180,10 +200,12 @@ if __name__ == "__main__":
         df_masked,
         df_meta,
         title_prefix=config['prefix_cluster'],
-        path_umap=config['path_umap'],
-        path_cluster=config['path_cluster'],
+        path_umap=config.get('path_umap'),
+        path_cluster=config.get('path_cluster'),
         path_opt_cluster=config['path_opt_cluster'],
         plot_clustering=config['plot_cluster'],
         do_evaluation=config['do_evaluation']
     )
+
+
 

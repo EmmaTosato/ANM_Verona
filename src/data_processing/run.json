@@ -1,14 +1,14 @@
 {
-  "df_masked": "data/dataframes/fdc/df_gm.pkl" ,
-  "threshold": false,
+  "df_masked": "data/dataframes/fdc/df_thr02_gm.pkl",
+  "threshold": 0.2,
 
-  "plot_cluster": false,
-  "do_evaluation": true,
+  "plot_cluster": true,
+  "do_evaluation": false,
 
-  "target_variable": "CDR_SB",
+  "target_variable": "MMSE",
   "plot_regression": false,
-  "flag_covariates": true,
+  "flag_covariates": false,
 
-  "group_regression": false,
-  "group_col": "labels_km"
+  "group_regression": true,
+  "group_col": "labels_km_thr02"
 }

@@ -12,8 +12,8 @@ data/
 # PyCharm
 .idea/
 
-# Ignore images
-output/
+# Ignore pycache
+__pycache__/
 
 # Ignore logs
 logs/

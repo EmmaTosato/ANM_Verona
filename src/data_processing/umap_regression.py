@@ -96,16 +96,73 @@ def shuffling_regression(input_data, target, n_iterations=100):
 # ------------------------------------------------------------
 # Plot diagnostics: True vs Predicted and Residuals vs Fitted
 # ------------------------------------------------------------
-def plot_ols_diagnostics(target, predictions, residuals, title, save_path=None, plot_flag=True):
+def plot_ols_diagnostics(target, predictions, residuals, title,
+                         save_path=None, plot_flag=True,
+                         color_by_group=False, group_labels=None):
+
+    if color_by_group and group_labels is not None:
+        # --- Single plot: colored by group ---
+        fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
+
+        df_plot = pd.DataFrame({
+            'target': target,
+            'predictions': predictions,
+            'residuals': residuals,
+            'group': group_labels
+        })
+
+        sns.scatterplot(
+            data=df_plot, x='target', y='predictions',
+            hue='group', palette="Set2", s=140, alpha=0.9,
+            edgecolor='black', linewidth=1.5, ax=ax
+        )
+        sns.regplot(
+            data=df_plot, x='target', y='predictions',
+            scatter=False, ci=None,
+            line_kws={'color': 'gray', 'linestyle': '--', 'linewidth': 2.5, 'alpha': 0.9},
+            truncate=False, ax=ax
+        )
+
+        ax.set_title(f"{title} - OLS True vs Predicted", fontsize=16, fontweight='bold', pad=15)
+        ax.set_xlabel("True", fontsize=14, fontweight='bold')
+        ax.set_ylabel("Predicted", fontsize=14, fontweight='bold')
+        ax.tick_params(labelsize=12)
+        ax.spines['bottom'].set_linewidth(2)
+        ax.spines['left'].set_linewidth(2)
+        ax.grid(color='gray', linestyle='--', linewidth=0.7, alpha=0.6)
+
+        ax_lim_number = 1.5
+        ax.set_xlim(target.min() - ax_lim_number, target.max() + ax_lim_number)
+        ax.set_ylim(predictions.min() - ax_lim_number, predictions.max() + ax_lim_number)
+
+        if save_path:
+            clean_title = re.sub(r'[\s\-]+', '_',
+                                 re.sub(r'(threshold|covariates)',
+                                        lambda m: 'thr' if m.group(0).lower() == 'threshold' else 'cov',
+                                        title.strip(),
+                                        flags=re.IGNORECASE
+                                        ).lower())
+            filename = f"{clean_title}_diagnostics_label_group.png"
+            plt.savefig(os.path.join(save_path, filename), dpi=300, bbox_inches='tight')
+
+        if plot_flag:
+            plt.show()
+
+        plt.close()
+
+    # --- Two-panel plot: True vs Predicted and Residuals ---
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-    sns.scatterplot(x=target, y=predictions, ax=axes[0], color='#61bdcd', edgecolor='black', alpha=0.8, s=50)
-    axes[0].plot([target.min(), target.max()], [target.min(), target.max()],'--', color='gray')
+    sns.scatterplot(x=target, y=predictions, ax=axes[0], color='#61bdcd',
+                    edgecolor='black', alpha=0.8, s=70, linewidth=1.0)
+    axes[0].plot([target.min(), target.max()], [target.min(), target.max()],
+                 '--', color='gray')
     axes[0].set_title(f"{title} - OLS True vs Predicted")
     axes[0].set_xlabel("True")
     axes[0].set_ylabel("Predicted")
 
-    sns.scatterplot(x=predictions, y=residuals, ax=axes[1], color='#61bdcd',edgecolor='black', alpha=0.8, s=50)
+    sns.scatterplot(x=predictions, y=residuals, ax=axes[1], color='#61bdcd',
+                    edgecolor='black', alpha=0.8, s=70, linewidth=1.5)
     axes[1].axhline(0, linestyle='--', color='gray')
     axes[1].set_title(f"{title} - OLS Residuals vs Fitted")
     axes[1].set_xlabel("Predicted")
@@ -114,7 +171,12 @@ def plot_ols_diagnostics(target, predictions, residuals, title, save_path=None, 
     plt.tight_layout()
 
     if save_path:
-        clean_title = re.sub(r'[\s\-]+', '_', title.strip().lower())
+        clean_title = re.sub(r'[\s\-]+', '_',
+                             re.sub(r'(threshold|covariates)',
+                                    lambda m: 'thr' if m.group(0).lower() == 'threshold' else 'cov',
+                                    title.strip(),
+                                    flags=re.IGNORECASE
+                                    ).lower())
         filename = f"{clean_title}_diagnostics.png"
         plt.savefig(os.path.join(save_path, filename), dpi=300)
 
@@ -122,6 +184,8 @@ def plot_ols_diagnostics(target, predictions, residuals, title, save_path=None, 
         plt.show()
 
     plt.close()
+
+
 
 # ------------------------------------------------------------
 # Plot histograms of Actual and Predicted values
@@ -139,12 +203,20 @@ def plot_actual_vs_predicted(target, predictions, title, save_path=None, plot_fl
     plt.tight_layout()
 
     if save_path:
-        clean_title = re.sub(r'[\s\-]+', '_', title.strip().lower())
+        clean_title = re.sub(r'[\s\-]+', '_',
+                             re.sub(r'(threshold|covariates)',
+                                    lambda m: 'thr' if m.group(0).lower() == 'threshold' else 'cov',
+                                    title.strip(),
+                                    flags=re.IGNORECASE
+                                    ).lower())
+
         filename = f"{clean_title}_distribution.png"
         plt.savefig(os.path.join(save_path, filename), dpi=300)
 
     if plot_flag:
         plt.show()
+
+
 
 def group_value_to_str(value):
     if pd.isna(value):
@@ -190,7 +262,7 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
 
     # Plot diagnostics if requested
     if plot_flag or save_path:
-        plot_ols_diagnostics(y, y_pred, residuals, title=title_prefix, save_path=save_path, plot_flag=plot_flag)
+        plot_ols_diagnostics(y, y_pred, residuals, title=title_prefix ,save_path=save_path, plot_flag=True, color_by_group=config['color_by_group'], group_labels=df_merged['Group'])
         plot_actual_vs_predicted(y, y_pred, title=title_prefix, save_path=save_path, plot_flag=plot_flag)
 
     # Print results
@@ -239,15 +311,15 @@ if __name__ == "__main__":
 
     # Check if threshold is set
     if config.get("threshold") in [0.1, 0.2]:
-        config['log']  = f"log_{config['threshold']}_thr"
-        config['prefix_regression'] = f"{config['threshold']} Thr"
+        config['log'] = f"log_{config['threshold']}_threshold"
+        config['prefix_regression'] = f"{config['threshold']} Threshold"
     else:
-        config['log'] = "log_no_thr"
-        config['prefix_regression'] = "No Thr"
+        config['log'] = "log_no_threshold"
+        config['prefix_regression'] = "No Threshold"
 
     # Check if covariates are present and modify titles and path
     if config['flag_covariates']:
-        config['log'] = f"{config['log']}_covariates"
+        config['log'] = f"{config['log']}_cov"
         config['prefix_regression'] = f"{config['prefix_regression']} - Covariates"
         output_dir = os.path.join(output_dir, "covariates")
         os.makedirs(output_dir, exist_ok=True)

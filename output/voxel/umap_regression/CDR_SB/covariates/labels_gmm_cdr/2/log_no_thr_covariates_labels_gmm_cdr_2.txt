@@ -1,0 +1,83 @@
+
+=== Group by labels_gmm_cdr - 2 ===
+Dataframe shape after merge: (15, 161829)
+Meta columns: 12
+Feature matrix shape: (15, 161817) 
+
+Running UMAP...
+
+OLS REGRESSION SUMMARY
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                 CDR_SB   R-squared:                       0.166
+Model:                            OLS   Adj. R-squared:                 -0.297
+Method:                 Least Squares   F-statistic:                    0.3588
+Date:                Wed, 11 Jun 2025   Prob (F-statistic):              0.864
+Time:                        17:39:00   Log-Likelihood:                -35.161
+No. Observations:                  15   AIC:                             82.32
+Df Residuals:                       9   BIC:                             86.57
+Df Model:                           5                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          5.0052     36.041      0.139      0.893     -76.525      86.535
+UMAP1         -0.4119      1.054     -0.391      0.705      -2.796       1.973
+UMAP2         -0.3137      1.428     -0.220      0.831      -3.545       2.918
+Age            0.0558      0.112      0.500      0.629      -0.196       0.308
+Education      0.2884      0.311      0.929      0.377      -0.414       0.991
+Sex_M          0.9984      2.116      0.472      0.648      -3.789       5.785
+==============================================================================
+Omnibus:                        3.381   Durbin-Watson:                   1.936
+Prob(Omnibus):                  0.184   Jarque-Bera (JB):                1.382
+Skew:                           0.688   Prob(JB):                        0.501
+Kurtosis:                       3.566   Cond. No.                     3.28e+03
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+[2] The condition number is large, 3.28e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+
+--------------------------------------------------------------------------------
+SHUFFLING REGRESSION
+--------------------------------------------------------------------------------
+R² real:      0.1662
+R² shuffled:  0.4083
+Empirical p:  0.9300
+
+
+--------------------------------------------------------------------------------
+RMSE BY DIAGNOSTIC GROUP AND OVERALL METRICS
+--------------------------------------------------------------------------------
+       Mean_RMSE  Std_RMSE  N
+Group                        
+PSP         2.79      2.61  5
+CBS         1.50      1.17  6
+ADNI        1.29      0.86  4
+
+
+MAE:  1.8729
+RMSE: 2.5221
+
+
+--------------------------------------------------------------------------------
+SUBJECTS RANKED BY RMSE (BEST TO WORST)
+--------------------------------------------------------------------------------
+        ID Group  CDR_SB  Predicted CDR_SB     RMSE
+  4_S_5001   CBS    12.0         11.854068 0.145932
+  4_S_5010   PSP    12.0         12.170702 0.170702
+  3_S_5001   PSP    13.5         13.905893 0.405893
+036_S_4715  ADNI    11.0         11.494026 0.494026
+  1_S_5038   CBS     9.0          9.513560 0.513560
+  1_S_5019   CBS    11.0         11.683933 0.683933
+036_S_4430  ADNI    14.0         13.275839 0.724161
+012_S_4188  ADNI    15.0         13.446141 1.553859
+  4_S_5009   CBS     9.0         11.342091 2.342091
+016_S_4902  ADNI    10.0         12.375531 2.375531
+  1_S_5023   CBS    16.0         13.420625 2.579375
+  1_S_5001   CBS    15.0         12.272882 2.727118
+  1_S_5011   PSP     9.0         11.741530 2.741530
+  5_S_5007   PSP     9.5         13.819395 4.319395
+  1_S_5007   PSP    18.0         11.683785 6.316215

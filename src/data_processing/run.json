@@ -1,15 +1,15 @@
 {
-  "df_masked": "data/dataframes/fdc/df_gm.pkl",
-  "threshold": false,
+  "df_masked": "data/dataframes/fdc/df_thr02_gm.pkl",
+  "threshold": 0.2,
 
   "plot_cluster": true,
   "do_evaluation": false,
 
-  "target_variable": "CDR_SB",
+  "target_variable": "MMSE",
   "plot_regression": false,
   "color_by_group": true,
-  "flag_covariates": true,
+  "flag_covariates": false,
 
   "group_regression": false,
-  "group_col": "labels_km_thr02"
+  "group_col": "Group"
 }

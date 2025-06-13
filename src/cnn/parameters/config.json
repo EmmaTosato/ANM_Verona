@@ -1,27 +1,28 @@
 {
     "data_dir_augmented": "/data/users/etosato/ANM_Verona/data/FCmaps_augmented_processed",
     "data_dir": "/data/users/etosato/ANM_Verona/data/FCmaps_processed",
-    "split_csv": "/data/users/etosato/ANM_Verona/data/PSP_CBS_splitted.csv",
+    "split_csv": "/data/users/etosato/ANM_Verona/data/ADNI_PSP_splitted.csv",
     "runs_dir": "/data/users/etosato/ANM_Verona/src/cnn/runs",
     "tuning_results_dir": "/data/users/etosato/ANM_Verona/src/cnn/tuning_results",
 
-    "model_type": "densenet",
-    "epochs": 4,
+    "model_type": "resnet",
+    "epochs": 5,
     "batch_size": 8,
     "lr": 0.001,
     "weight_decay": 0.001,
-    "n_folds": 5,
-    "seed": 42,
     "optimizer": "adam",
 
+    "n_folds": 5,
+    "seed": 42,
+
     "label_column": "Group",
-    "group1": "PSP",
-    "group2": "CBS",
+    "group1": "ADNI",
+    "group2": "PSP",
     "threshold": "no thr",
     "test_size": 0.2,
 
-    "run_id": 4,
-    "ckpt_path_evaluation": "/data/users/etosato/ANM_Verona/src/cnn/tuning_results/tuning2/config8/best_model_fold3.pt",
+    "run_id": 6,
+    "ckpt_path_evaluation": "/data/users/etosato/ANM_Verona/src/cnn/tuning_results/tuning5/config1/best_model_fold3.pt",
 
     "crossval_flag": true,
     "tuning_flag": true,

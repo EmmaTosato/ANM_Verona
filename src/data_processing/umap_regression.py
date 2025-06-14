@@ -15,6 +15,7 @@ import os
 import warnings
 warnings.filterwarnings("ignore")
 import sys
+import matplotlib.collections as mcoll
 
 
 # ------------------------------------------------------------
@@ -118,14 +119,10 @@ def shuffling_regression(input_data, target, n_iterations=100):
 # ------------------------------------------------------------
 # Plot diagnostics: True vs Predicted and Residuals vs Fitted
 # ------------------------------------------------------------
-def plot_ols_diagnostics(target, predictions, residuals, title,
-                         save_path=None, plot_flag=True,
-                         color_by_group=False, group_labels=None):
+def plot_ols_diagnostics(target, predictions, residuals, title, save_path=None, plot_flag=True, color_by_group=False, group_labels=None):
 
     if color_by_group and group_labels is not None:
-        # --- Single plot: colored by group ---
-        fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
-
+        # Prepare dataframe
         df_plot = pd.DataFrame({
             'target': target,
             'predictions': predictions,
@@ -133,38 +130,57 @@ def plot_ols_diagnostics(target, predictions, residuals, title,
             'group': group_labels
         })
 
-        sns.scatterplot(
-            data=df_plot, x='target', y='predictions',
-            hue='group', palette="Set2", s=140, alpha=0.9,
-            edgecolor='black', linewidth=1, ax=ax
-        )
-        sns.regplot(
-            data=df_plot, x='target', y='predictions',
-            scatter=False, ci=None,
-            line_kws={'color': 'gray', 'linestyle': '--', 'linewidth': 2.5, 'alpha': 0.9},
-            truncate=False, ax=ax
+        # Compute symmetric axis limits
+        x_min, x_max = df_plot['target'].min(), df_plot['target'].max()
+        y_min, y_max = df_plot['predictions'].min(), df_plot['predictions'].max()
+        axis_min = min(x_min, y_min)
+        axis_max = max(x_max, y_max)
+
+        # lmplot with confidence intervals
+        g = sns.lmplot(
+            data=df_plot,
+            x='target',
+            y='predictions',
+            hue='group',
+            palette="Set2",
+            height=8,
+            aspect=1.2,
+            scatter_kws=dict(s=180, alpha=0.6, edgecolor="black", linewidths=1.4),
+            line_kws=dict(linewidth=2.5),
+            ci=95
         )
 
-        ax.set_title(f"{title} - OLS True vs Predicted", fontsize=16, fontweight='bold', pad=15)
-        ax.set_xlabel("True", fontsize=14, fontweight='bold')
-        ax.set_ylabel("Predicted", fontsize=14, fontweight='bold')
-        ax.tick_params(labelsize=12)
-        ax.spines['bottom'].set_linewidth(1.5)
-        ax.spines['left'].set_linewidth(1.5)
-        ax.grid(color='gray', linestyle='--', linewidth=0.7, alpha=0.6)
+        # Make the confidence band more visible
+        for ax in g.axes.flat:
+            for coll in ax.collections:
+                if isinstance(coll, mcoll.PolyCollection):
+                    coll.set_alpha(0.2)
 
-        ax_lim_number = 2
-        ax.set_xlim(target.min() - ax_lim_number, target.max() + ax_lim_number)
-        ax.set_ylim(predictions.min() - ax_lim_number, predictions.max() + ax_lim_number)
+        # Axis limits
+        g.set(xlim=(axis_min - 1, axis_max + 1), ylim=(axis_min - 1, axis_max + 1))
+        g.set_axis_labels("True", "Predicted", fontsize=18, weight="bold")
+        g.fig.suptitle(f"{title} - OLS True vs Predicted", fontsize=20, weight="bold", y=1.02)
+
+        for ax in g.axes.flat:
+            ax.tick_params(labelsize=14)
+            ax.spines["bottom"].set_linewidth(2)
+            ax.spines["left"].set_linewidth(2)
+            ax.grid(True, linestyle="--", linewidth=0.7, alpha=0.6)
+
+        g._legend.set_title("Group")
+        g._legend.set_bbox_to_anchor((-0.15, 1.05))
+        legf = g._legend.get_frame()
+        legf.set_facecolor("white")
+        legf.set_edgecolor("black")
+        legf.set_linewidth(1.2)
 
         if save_path:
             clean_title = clean_title_string(title)
             filename = f"{clean_title}_diagnostics_diagnosis.png"
-            plt.savefig(os.path.join(save_path, filename), dpi=300, bbox_inches='tight')
+            g.savefig(os.path.join(save_path, filename), dpi=300, bbox_inches='tight')
 
         if plot_flag:
             plt.show()
-
         plt.close()
 
     # --- Two-panel plot: True vs Predicted and Residuals ---
@@ -196,7 +212,6 @@ def plot_ols_diagnostics(target, predictions, residuals, title,
         plt.show()
 
     plt.close()
-
 
 
 # ------------------------------------------------------------

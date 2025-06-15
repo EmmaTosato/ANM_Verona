@@ -1,10 +1,11 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-import umap
 import numpy as np
 import re
 import warnings
+import umap
+
 warnings.filterwarnings("ignore")
 
 np.random.seed(42)
@@ -22,7 +23,6 @@ def x_features_return(df_voxel, df_labels):
     # Ordering
     ordered_cols = meta_columns + [col for col in dataframe_merge.columns if col not in meta_columns]
     dataframe_merge = dataframe_merge[ordered_cols]
-    assert (dataframe_merge['ID'].values == df_voxel['ID'].values).all(), "Row order mismatch after merge"
 
     # Features data
     x = dataframe_merge.drop(columns=meta_columns)

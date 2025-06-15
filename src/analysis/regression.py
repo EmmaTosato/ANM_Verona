@@ -1,13 +1,10 @@
-# umap_regression.py
+# regression.py
 
 import re
 import json
-from tokenize import group
-
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-from umap_run import x_features_return, run_umap
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -16,6 +13,7 @@ import warnings
 warnings.filterwarnings("ignore")
 import sys
 import matplotlib.collections as mcoll
+from analysis.dimensionality_reduction import x_features_return, run_umap
 
 
 # ------------------------------------------------------------
@@ -36,14 +34,12 @@ def clean_title_string(title):
 
     return title.lower()
 
-    return title
-
 
 # ------------------------------------------------------------
 # Removing subjects without target values
 # ------------------------------------------------------------
-def remove_missing_values(raw_df, df_meta, target_col):
-    subjects_nan = df_meta[df_meta[target_col].isna()]['ID'].tolist()
+def remove_missing_values(raw_df, meta_df, target_col):
+    subjects_nan = meta_df[meta_df[target_col].isna()]['ID'].tolist()
     df = raw_df[~raw_df['ID'].isin(subjects_nan)].reset_index(drop=True)
     return df
 
@@ -120,9 +116,8 @@ def shuffling_regression(input_data, target, n_iterations=100):
 # Plot diagnostics: True vs Predicted and Residuals vs Fitted
 # ------------------------------------------------------------
 def plot_ols_diagnostics(target, predictions, residuals, title, save_path=None, plot_flag=True, color_by_group=False, group_labels=None):
-
     if color_by_group and group_labels is not None:
-        # Prepare dataframe
+        # Prepare DataFrame
         df_plot = pd.DataFrame({
             'target': target,
             'predictions': predictions,
@@ -130,57 +125,65 @@ def plot_ols_diagnostics(target, predictions, residuals, title, save_path=None, 
             'group': group_labels
         })
 
-        # Compute symmetric axis limits
+        # Get square axis limits
         x_min, x_max = df_plot['target'].min(), df_plot['target'].max()
         y_min, y_max = df_plot['predictions'].min(), df_plot['predictions'].max()
         axis_min = min(x_min, y_min)
         axis_max = max(x_max, y_max)
 
-        # lmplot with confidence intervals
+        # Create plot
         g = sns.lmplot(
             data=df_plot,
             x='target',
             y='predictions',
             hue='group',
             palette="Set2",
-            height=8,
-            aspect=1.2,
-            scatter_kws=dict(s=180, alpha=0.6, edgecolor="black", linewidths=1.4),
-            line_kws=dict(linewidth=2.5),
+            height=6,  # Reduced height
+            aspect=1,  # Aspect ratio 1:1
+            scatter_kws=dict(s=100, alpha=0.6, edgecolor="black", linewidths=1),
+            line_kws=dict(linewidth=2.2),
             ci=95
         )
 
-        # Make the confidence band more visible
+        # Set square limits
+        g.set(xlim=(axis_min - 1, axis_max + 1), ylim=(axis_min - 1, axis_max + 1))
+        for ax in g.axes.flat:
+            ax.set_aspect('equal', adjustable='box')  # x = y
+            ax.tick_params(labelsize=12)
+            ax.spines["bottom"].set_linewidth(1.5)
+            ax.spines["left"].set_linewidth(1.5)
+            ax.grid(True, linestyle="--", linewidth=0.6, alpha=0.5)
+
+        # Confidence band opacity
         for ax in g.axes.flat:
             for coll in ax.collections:
                 if isinstance(coll, mcoll.PolyCollection):
                     coll.set_alpha(0.2)
 
-        # Axis limits
-        g.set(xlim=(axis_min - 1, axis_max + 1), ylim=(axis_min - 1, axis_max + 1))
-        g.set_axis_labels("True", "Predicted", fontsize=18, weight="bold")
-        g.fig.suptitle(f"{title} - OLS True vs Predicted", fontsize=20, weight="bold", y=1.02)
+        # Titles and labels
+        g.set_axis_labels("True", "Predicted", fontsize=14, weight="bold")
+        g.fig.suptitle(f"{title} - OLS True vs Predicted", fontsize=16, weight="bold", y=1.02)
 
-        for ax in g.axes.flat:
-            ax.tick_params(labelsize=14)
-            ax.spines["bottom"].set_linewidth(2)
-            ax.spines["left"].set_linewidth(2)
-            ax.grid(True, linestyle="--", linewidth=0.7, alpha=0.6)
+        # Legend formatting
+        leg = g.ax.get_legend()
+        if leg is not None:
+            leg.set_title("Group")
+            leg.set_bbox_to_anchor((1.01, 1.02))
 
-        g._legend.set_title("Group")
-        g._legend.set_bbox_to_anchor((-0.15, 1.05))
-        legf = g._legend.get_frame()
-        legf.set_facecolor("white")
-        legf.set_edgecolor("black")
-        legf.set_linewidth(1.2)
+            legf = leg.get_frame()
+            legf.set_facecolor("white")
+            legf.set_edgecolor("black")
+            legf.set_linewidth(1)
 
+        # Save or show
         if save_path:
             clean_title = clean_title_string(title)
             filename = f"{clean_title}_diagnostics_diagnosis.png"
-            g.savefig(os.path.join(save_path, filename), dpi=300, bbox_inches='tight')
+            g.savefig(os.path.join(save_path, filename), dpi=300, bbox_inches='tight', pad_inches=0.05)
 
         if plot_flag:
             plt.show()
+
         plt.close()
 
     # --- Two-panel plot: True vs Predicted and Residuals ---
@@ -241,8 +244,12 @@ def plot_actual_vs_predicted(target, predictions, title, save_path=None, plot_fl
 # ------------------------------------------------------------
 # Main regression pipeline
 # ------------------------------------------------------------
-def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=None,
-                    y_log_transform=False, plot_flag=True, save_path=None, title_prefix=None):
+def main_regression(df_masked, df_meta, params):
+    # Variable definition
+    target_variable = params['target_variable']
+    plot_flag = params['plot_flag']
+    save_path = params['output_dir']
+    title_prefix = params['title_prefix']
 
     # Remove subjects without target value
     df_masked = remove_missing_values(df_masked, df_meta, target_variable)
@@ -253,14 +260,14 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
     # Target variable
     y = df_merged[target_variable]
 
-    if y_log_transform:
+    if params['y_log_transform']:
         y = np.log1p(y)
 
     # Reduce dimensionality with UMAP
     x_umap = run_umap(x, plot_flag=False, save_path = None, title = None)
 
     # Regression with OLS
-    x_ols = build_design_matrix(df_merged, x_umap, covariates)
+    x_ols = build_design_matrix(df_merged, x_umap, params['covariates'])
 
     # Fit OLS model
     model, y_pred, residuals = fit_ols_model(x_ols, y)
@@ -273,9 +280,12 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
     subject_errors_sorted = subject_errors.sort_values(by='RMSE').reset_index(drop=True)
 
     # Plot diagnostics if requested
+
     if plot_flag or save_path:
-        plot_ols_diagnostics(y, y_pred, residuals, title=title_prefix ,save_path=save_path, plot_flag=plot_flag, color_by_group=config['color_by_group'], group_labels=df_merged['Group'])
+        group_labels = df_merged[params['group_name']]
+        plot_ols_diagnostics(y, y_pred, residuals, title=title_prefix ,save_path=save_path, plot_flag=plot_flag, color_by_group=params['color_by_group'], group_labels=group_labels)
         plot_actual_vs_predicted(y, y_pred, title=title_prefix, save_path=save_path, plot_flag=plot_flag)
+
 
     # Print results
     print("OLS REGRESSION SUMMARY")
@@ -284,8 +294,8 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
     print("\n\n" + "-" * 80)
     print("SHUFFLING REGRESSION")
     print("-" * 80)
-    print(f"R² real:      {round(r2_real, 4)}")
-    print(f"R² shuffled:  {np.mean(r2_shuffled):.4f}")
+    print(f"R² real: {r2_real:.4f}")
+    print(f"R² shuffled: {float(np.mean(r2_shuffled)):.4f}")
     print(f"Empirical p:  {p_value:.4f}")
 
     print("\n\n" + "-" * 80)
@@ -301,24 +311,23 @@ def main_regression(df_masked, df_meta, target_variable="CDR_SB", covariates=Non
     print("-" * 80)
     print(subject_errors_sorted.to_string(index=False))
 
-    return model, y_pred, residuals, subject_errors, group_rmse_stats
 
 if __name__ == "__main__":
     # Load json
-    with open("src/data_processing/config.json", "r") as f:
+    with open("src/parameters/config.json", "r") as f:
         config = json.load(f)
 
-    with open("src/data_processing/run.json", "r") as f:
+    with open("src/parameters/run.json", "r") as f:
         run = json.load(f)
 
     config.update(run)
 
     # Load configuration and metadata
-    df_masked = pd.read_pickle(config['df_masked'])
-    df_meta = pd.read_csv(config['df_meta'])
+    df_masked_raw = pd.read_pickle(config['df_masked'])
+    df_metadata = pd.read_csv(config['df_meta'])
 
     # Set output directory
-    output_dir = os.path.join(config["path_umap_regression"], config["target_variable"])
+    output_dir = os.path.join(str(config["path_umap_regression"]), str(config["target_variable"]))
     os.makedirs(output_dir, exist_ok=True)
 
     # Check if threshold is set
@@ -348,56 +357,39 @@ if __name__ == "__main__":
         os.makedirs(output_dir, exist_ok=True)
 
         # Estrai i gruppi unici (senza NaN)
-        unique_groups = df_meta[group_col].dropna().unique()
+        unique_groups = df_metadata[group_col].dropna().unique()
 
         for group_id in sorted(unique_groups):
             group_id_str = group_value_to_str(group_id)
 
-            # Crea sottocartella per ogni gruppo
-            output_dir_group = os.path.join(output_dir, group_id_str)
-            os.makedirs(output_dir_group, exist_ok=True)
+            output_dir = os.path.join(output_dir, group_id_str)
+            os.makedirs( output_dir, exist_ok=True)
+            config['output_dir'] = output_dir
 
             # Log file specifico per il gruppo
             log_name = f'{config["log"]}_{group_col}_{group_id_str}.txt'.lower()
-            sys.stdout = open(os.path.join(output_dir_group, log_name), "w")
+            sys.stdout = open(os.path.join(output_dir, log_name), "w")
 
             print(f"\n=== Group by {group_col} - {group_id_str} ===")
 
             # Filtra i dati per gruppo
-            ids = df_meta[df_meta[group_col] == group_id]["ID"]
-            df_meta_cluster = df_meta[df_meta["ID"].isin(ids)].reset_index(drop=True)
-            df_cluster = df_masked[df_masked["ID"].isin(ids)].reset_index(drop=True)
+            ids = df_metadata[df_metadata[group_col] == group_id]["ID"]
+            df_meta_cluster = df_metadata[df_metadata["ID"].isin(ids)].reset_index(drop=True)
+            df_cluster = df_masked_raw[df_masked_raw["ID"].isin(ids)].reset_index(drop=True)
 
             # Esegui la regressione
-            model, y_pred, residuals, subject_errors, group_rmse_stats = main_regression(
-                df_masked=df_cluster,
-                df_meta=df_meta_cluster,
-                target_variable=config["target_variable"],
-                covariates=config['covariates'],
-                y_log_transform=config.get('y_log_transform', False),
-                plot_flag=config["plot_regression"],
-                save_path=output_dir_group,
-                title_prefix=f"{config['prefix_regression']}"
-            )
+            main_regression(df_cluster, df_meta_cluster, config)
     else:
         # Modify output directory
         output_dir = os.path.join(output_dir, 'all')
         os.makedirs(output_dir, exist_ok=True)
+        config['output_dir'] = output_dir
 
         # Redirect stdout
         sys.stdout = open(os.path.join(output_dir, config['log']), "w")
 
         # Run regression
-        model, y_pred, residuals, subject_errors, group_rmse_stats = main_regression(
-            df_masked=df_masked,
-            df_meta=df_meta,
-            target_variable= config["target_variable"],
-            covariates=config['covariates'],
-            y_log_transform=config.get('y_log_transform', False),
-            plot_flag=config["plot_regression"],
-            save_path= output_dir,
-            title_prefix= config['prefix_regression']
-        )
+        main_regression(df_masked_raw,df_metadata, config)
 
 
 

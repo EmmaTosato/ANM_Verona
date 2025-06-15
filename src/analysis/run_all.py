@@ -4,8 +4,8 @@ import os
 from copy import deepcopy
 
 # Path to script and json
-BASE_DIR = "/Users/emmatosato/Documents/PhD/ANM_Verona/src/data_processing"
-SCRIPT_PATH = os.path.join(BASE_DIR, "umap_regression.py")
+BASE_DIR = "/preprocessing"
+SCRIPT_PATH = os.path.join(BASE_DIR, "regression.py")
 JSON_PATH = os.path.join(BASE_DIR, "run.json")
 
 # Base config

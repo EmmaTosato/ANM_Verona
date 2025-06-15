@@ -6,7 +6,7 @@ import json
 from src.data_processing.loading import load_FDCmaps, load_metadata, gmm_label_CDR, load_Yeo
 
 # Load config
-with open("/Users/emmatosato/Documents/PhD/ANM_Verona/src/data_processing/config.json", "r") as f:
+with open("/preprocessing/parameters/config.json", "r") as f:
     config = json.load(f)
 
 

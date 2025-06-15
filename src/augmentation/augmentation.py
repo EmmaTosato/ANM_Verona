@@ -2,7 +2,6 @@
 import os
 import random
 import argparse
-import glob
 import csv
 import time
 import subprocess
@@ -57,7 +56,7 @@ with open(args.csv_out, "a", newline="") as csvfile:
     if not csv_exists:
         writer.writerow(["subject", "augmentation", "hcp_subset", "missing_hcps"])
 
-    # Begin processing this subject
+    # Begin preprocessing this subject
     start_time = time.time()
 
     # Loop over each augmentation
@@ -67,7 +66,7 @@ with open(args.csv_out, "a", newline="") as csvfile:
 
         for hcp_id in hcp_subset:
             file_name = f"{args.subject_id}.{hcp_id}.SCA_result.nii.gz"
-            file_path = os.path.join(subject_dir, file_name)
+            file_path = os.path.join(str(subject_dir), str(file_name))
             if os.path.exists(file_path):
                 files_to_merge.append(file_path)
                 hcp_ids_used.append(hcp_id)
@@ -76,8 +75,8 @@ with open(args.csv_out, "a", newline="") as csvfile:
             print(f"[ERROR] Augmentation {i} NOT succeed: only {len(files_to_merge)}/{args.subset_size} files found")
             continue
 
-        merged_file = os.path.join(subject_outdir, f"{args.subject_id}.merged.aug{i}.nii.gz")
-        mean_file = os.path.join(subject_outdir, f"{args.subject_id}.FDC.aug{i}.nii.gz")
+        merged_file = os.path.join(str(subject_outdir), f"{args.subject_id}.merged.aug{i}.nii.gz")
+        mean_file = os.path.join(str(subject_outdir), f"{args.subject_id}.FDC.aug{i}.nii.gz")
 
         # Try and except
         try:

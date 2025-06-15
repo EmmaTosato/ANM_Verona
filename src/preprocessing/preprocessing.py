@@ -21,7 +21,7 @@ def list_data(input_dir, augmented=False):
 # ------------------------------------------------------------------------------
 # Function for preprocessing the data: loading, thresholding, masking and saving
 # ------------------------------------------------------------------------------
-def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2,  augmented=False, normalization=None):
+def preprocess_fc_maps(maps_files, output_dir,mask_path, threshold = 0.2,  augmented=False, normalization=None):
     os.makedirs(output_dir, exist_ok=True)
 
     # Load the mask
@@ -29,7 +29,7 @@ def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2,  augmented=
     mask = mask != 0
 
     # Loop over all files
-    for file_path in tqdm(files, desc="Preprocessing FC maps"):
+    for file_path in tqdm(maps_files, desc="Preprocessing FC maps"):
         try:
             # Load the file
             img = nib.load(file_path)
@@ -58,7 +58,7 @@ def preprocess_fc_maps(files, output_dir,mask_path, threshold = 0.2,  augmented=
                 filename = os.path.basename(file_path).replace('.nii.gz', '')
                 subject_folder = os.path.join(output_dir, subj_id)
                 os.makedirs(subject_folder, exist_ok=True)
-                save_path = os.path.join(subject_folder, f"{filename}.processed.npy")
+                save_path = os.path.join(str(subject_folder), f"{filename}.processed.npy")
                 #save_affine_path = os.path.join(subject_folder, f"{filename}.affine.npy")
             else:
                 filename = os.path.basename(file_path).replace('.FDC.nii.gz', '')

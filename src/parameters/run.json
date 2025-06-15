@@ -1,5 +1,6 @@
 {
   "df_masked": "data/dataframes/fdc/df_thr02_gm.pkl",
+  "output_dir": "",
   "threshold": 0.2,
 
   "plot_cluster": true,
@@ -8,6 +9,7 @@
   "target_variable": "MMSE",
   "plot_regression": false,
   "color_by_group": true,
+  "group_name": "Group",
   "flag_covariates": false,
 
   "group_regression": false,

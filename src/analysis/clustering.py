@@ -1,5 +1,4 @@
-# umap_clustering.py
-
+# clustering.py
 import os
 import re
 import pandas as pd
@@ -8,15 +7,13 @@ import matplotlib.pyplot as plt
 import hdbscan
 import numpy as np
 from sklearn.cluster import KMeans
-from umap_run import x_features_return, run_umap
-from clustering_evaluation import evaluate_kmeans, evaluate_gmm, evaluate_hdbscan, evaluate_consensus
+from analysis.dimensionality_reduction import x_features_return, run_umap
+from analysis.clustering_evaluation import evaluate_kmeans, evaluate_gmm, evaluate_hdbscan, evaluate_consensus
 import json
 import warnings
 warnings.filterwarnings("ignore")
 
-
 np.random.seed(42)
-
 
 # ---------------------------
 # Run clustering algorithms
@@ -41,82 +38,85 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column, save_path, 
     n_cols = 2
     n_rows = n
 
-    x_min, x_max = x_umap[:, 0].min() - margin, x_umap[:, 0].max() + margin
-    y_min, y_max = x_umap[:, 1].min() - margin, x_umap[:, 1].max() + margin
+    # Get global min and max across both UMAP axes
+    x_vals = x_umap[:, 0]
+    y_vals = x_umap[:, 1]
+    min_val = min(x_vals.min(), y_vals.min()) - margin
+    max_val = max(x_vals.max(), y_vals.max()) + margin
 
-    # Define color palettes
-    left_plot_col = ['#74c476', '#f44f39', '#40b7ad', '#fd8d3c', '#37659e','#fbbabd', '#ffdb24', '#413d7b', '#9dd569', '#e84a9b','#056c39', '#6788ee']
+    # Color palettes
+    left_plot_col = ['#74c476', '#f44f39', '#7BD3EA', '#fd8d3c', '#37659e',
+                     '#fbbabd', '#ffdb24', '#413d7b', '#9dd569', '#e84a9b',
+                     '#056c39', '#6788ee']
+    right_plot_col = sns.color_palette("Set2")[2:] if colors_gmm else sns.color_palette("Set2")
 
-    if colors_gmm:
-        right_plot_col = sns.color_palette("Set2")[2:]
-    else:
-        right_plot_col = sns.color_palette("Set2")
+    # Create subplots
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 6 * n_rows))
 
-    # Create figure
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 10))
+    if n_rows == 1:
+        axes = [axes]
 
     for i, (title, labels) in enumerate(labels_dictionary.items()):
-        ax_left = axes[i, 0]
-        ax_right = axes[i, 1]
+        ax_left = axes[i][0]
+        ax_right = axes[i][1]
 
-        plot_df = pd.DataFrame({
-            'X1': x_umap[:, 0],
-            'X2': x_umap[:, 1],
+        df_plot = pd.DataFrame({
+            'X1': x_vals,
+            'X2': y_vals,
             'cluster': labels,
             'label': group_column
-        })
+        }).dropna(subset=['label'])
 
-        plot_df = plot_df.dropna(subset=['label'])
-
-        # Left plot (clustering)
-        sns.scatterplot(data=plot_df, x='X1', y='X2', hue='cluster', palette=left_plot_col, s=50, ax=ax_left)
+        # Left: clustering result
+        sns.scatterplot(data=df_plot, x='X1', y='X2', hue='cluster', palette=left_plot_col, s=50, ax=ax_left)
         ax_left.legend(loc='best', title='cluster', fontsize='small', title_fontsize='medium')
         ax_left.set_title(f'{title}', fontweight='bold')
         ax_left.set_xlabel("X1", fontsize=11, fontweight='bold')
         ax_left.set_ylabel("X2", fontsize=11, fontweight='bold')
-        ax_left.set_xlim(x_min, x_max)
-        ax_left.set_ylim(y_min, y_max)
+        ax_left.set_xlim(min_val, max_val)
+        ax_left.set_ylim(min_val, max_val)
 
-        # Right plot (labeling)
-        sns.scatterplot(data=plot_df, x='X1', y='X2', hue='label',palette=right_plot_col, s=50, ax=ax_right)
+        # Right: true group label
+        sns.scatterplot(data=df_plot, x='X1', y='X2', hue='label', palette=right_plot_col, s=50, ax=ax_right)
         ax_right.legend(loc='best', title='label', fontsize='small', title_fontsize='medium')
         ax_right.set_title(f'{title} - Labeling according to {group_column.name}', fontweight='bold')
         ax_right.set_xlabel("X1", fontsize=11, fontweight='bold')
         ax_right.set_ylabel("X2", fontsize=11, fontweight='bold')
-        ax_right.set_xlim(x_min, x_max)
-        ax_right.set_ylim(y_min, y_max)
+        ax_right.set_xlim(min_val, max_val)
+        ax_right.set_ylim(min_val, max_val)
 
-    # Adjust layout
-    plt.tight_layout()
-    plt.subplots_adjust(top=0.87, hspace=0.35)
-    plt.text(0.5, 1.00, "Clustering Results", fontsize=20, fontweight='bold', ha='center',
-             transform=plt.gcf().transFigure)
-    plt.text(0.5, 0.94, title_prefix, fontsize=18, ha='center', transform=plt.gcf().transFigure)
+    # Layout and title
+    fig.subplots_adjust(top=0.82, hspace=0.45)
+    fig.suptitle("Clustering Results", fontsize=22, fontweight='bold', y=0.95)
+    fig.text(0.5, 0.88, title_prefix, fontsize=16, ha='center')
 
     # Save
     if save_path:
         clean_prefix = re.sub(r'[\s\-]+', '_', title_prefix.strip().lower())
         save_file = os.path.join(save_path, f"{clean_prefix}_clustering.png")
-        plt.savefig(save_file, dpi=300, bbox_inches='tight')
-
+        fig.savefig(save_file, dpi=300, bbox_inches='tight')
 
     if plot_flag:
         plt.show()
-
-    plt.close()
-
-
-
+    plt.close(fig)
 
 # ---------------------------
 # Main function
 # ---------------------------
-def main_clustering(df_masked, df_meta, title_prefix, path_umap=None, path_cluster=None, path_opt_cluster=None, plot_clustering=False, do_evaluation=False):
+def main_clustering(df_masked, df_meta, params):
+
+    # Variable definition
+    title_prefix = params['prefix_cluster']
+    path_cluster = params['path_cluster']
+    path_opt_cluster = params['path_opt_cluster']
+    plot_clustering = params['plot_cluster']
+    do_evaluation = params['do_evaluation']
+
     # Merge voxel and metadata
     df_merged, x = x_features_return(df_masked, df_meta)
 
     # Reduce dimensionality with UMAP
-    x_umap = run_umap(x, plot_flag=plot_clustering, save_path=path_umap, title=title_prefix)
+    x_umap = run_umap(x, plot_flag=plot_clustering, save_path=params['path_umap'], title=title_prefix)
 
     # Evaluation of clustering
     if do_evaluation:
@@ -139,7 +139,6 @@ def main_clustering(df_masked, df_meta, title_prefix, path_umap=None, path_clust
         'labels_gmm_cdr': df_merged['labels_gmm_cdr']
     })
 
-
     # Plot and save clusters
     if plot_clustering or path_cluster:
         print("Running clustering...")
@@ -152,8 +151,8 @@ def main_clustering(df_masked, df_meta, title_prefix, path_umap=None, path_clust
         plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['labels_gmm_cdr'], path_cluster, title_cluster2, margin= 2.0, plot_flag=plot_clustering, colors_gmm= True)
 
     # Adding clustering columns according threshold
-    if config.get("threshold") in [0.1, 0.2]:
-        thr_suffix = f"_thr{str(config['threshold']).replace('.', '')}"
+    if params.get("threshold") in [0.1, 0.2]:
+        thr_suffix = f"_thr{str(params['threshold']).replace('.', '')}"
         km_col = f"labels_km{thr_suffix}"
         hdb_col = f"labels_hdb{thr_suffix}"
 
@@ -169,7 +168,7 @@ def main_clustering(df_masked, df_meta, title_prefix, path_umap=None, path_clust
     if km_col not in df_meta.columns and hdb_col not in df_meta.columns:
         df_meta = df_meta.merge(labeling_umap[['ID', km_col, hdb_col]], on='ID', how='left')
     df_meta['labels_gmm_cdr'] = df_meta['labels_gmm_cdr'].astype('Int64')
-    df_meta.to_csv(config['df_meta'], index=False)
+    df_meta.to_csv(params['df_meta'], index=False)
 
     return labeling_umap
 
@@ -177,17 +176,17 @@ def main_clustering(df_masked, df_meta, title_prefix, path_umap=None, path_clust
 if __name__ == "__main__":
     # Load json
     print("\nLoading config and metadata...")
-    with open("src/data_processing/config.json", "r") as f:
+    with open("src/parameters/config.json", "r") as f:
         config = json.load(f)
 
-    with open("src/data_processing/run.json", "r") as f:
+    with open("src/parameters/run.json", "r") as f:
         run = json.load(f)
 
     config.update(run)
 
     # Load configuration and metadata
-    df_masked = pd.read_pickle(config['df_masked'])
-    df_meta = pd.read_csv(config['df_meta'])
+    df_masked_raw = pd.read_pickle(config['df_masked'])
+    df_metadata = pd.read_csv(config['df_meta'])
 
     # Check if threshold is set
     if config.get("threshold") in [0.1, 0.2]:
@@ -196,16 +195,7 @@ if __name__ == "__main__":
         config['prefix_cluster'] = "No Threshold"
 
     # Run UMAP and clustering
-    umap_summary = main_clustering(
-        df_masked,
-        df_meta,
-        title_prefix=config['prefix_cluster'],
-        path_umap=config.get('path_umap'),
-        path_cluster=config.get('path_cluster'),
-        path_opt_cluster=config['path_opt_cluster'],
-        plot_clustering=config['plot_cluster'],
-        do_evaluation=config['do_evaluation']
-    )
+    umap_summary = main_clustering(df_masked_raw, df_metadata, config )
 
 
 

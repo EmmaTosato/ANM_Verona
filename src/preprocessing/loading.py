@@ -6,33 +6,31 @@ import nibabel as nib
 import numpy as np
 from sklearn.mixture import GaussianMixture
 import json
-import pickle
 import warnings
 warnings.filterwarnings("ignore")
 
-def load_FDCmaps(config):
+def load_fdc_maps(params):
     # All nii.gz files in the directory
-    dir_FCmaps = config['dir_FCmaps']
-    files_path = sorted(glob.glob(os.path.join(dir_FCmaps, '*gz')))
+    dir_fc_maps = params['dir_FCmaps']
+    path_files = sorted(glob.glob(os.path.join(dir_fc_maps, '*gz')))
 
     # Extract Subject IDs from filenames
-    subject_id = [os.path.basename(f).replace('.FDC.nii.gz', '') for f in files_path]
+    patients_id = [os.path.basename(file).replace('.FDC.nii.gz', '') for file in path_files]
 
     # Load image data and flatten
-    maps_FDC = []
-    for path in files_path:
-        #print(path)
+    maps_fdc = []
+    for path in path_files:
         data = nib.load(path).get_fdata().flatten()
-        maps_FDC.append(data)
+        maps_fdc.append(data)
 
     # Create DataFrame
-    raw_df = pd.DataFrame(maps_FDC)
-    raw_df.insert(0, 'ID', subject_id)
+    raw_df = pd.DataFrame(maps_fdc)
+    raw_df.insert(0, 'ID', patients_id)
 
     # Save the raw dataframes as csv
-    raw_df.to_pickle(os.path.join(config['raw_df']))
+    raw_df.to_pickle(params['raw_df'])
 
-    return files_path, subject_id, raw_df
+    return path_files, patients_id, raw_df
 
 
 def load_metadata(cognitive_dataset):
@@ -47,7 +45,7 @@ def load_metadata(cognitive_dataset):
 
 
 
-def gmm_label_CDR(df_meta):
+def gmm_label_cdr(df_meta):
     # Filter valid CDR_SB values
     df_cdr = df_meta[['ID', 'CDR_SB']].dropna().copy()
 
@@ -69,10 +67,10 @@ def gmm_label_CDR(df_meta):
 
     return df_meta
 
-def load_Yeo(config, df_meta):
-    save_dir = config["dir_yeo_df"]
+def load_yeo(params, df_meta):
+    save_dir = params["dir_yeo_df"]
 
-    # Mapping from config keys to output filenames
+    # Mapping from params keys to output filenames
     mapping = {
         "yeo_noThr": "networks_noTHR.csv",
         "yeo_01thr": "networks_thr01.csv",
@@ -81,7 +79,7 @@ def load_Yeo(config, df_meta):
 
     dfs = []
     for key, out_name in mapping.items():
-        df = pd.read_csv(config[key]).rename(columns={"CODE": "ID"})
+        df = pd.read_csv(params[key]).rename(columns={"CODE": "ID"})
         df = df.set_index("ID").loc[df_meta['ID']].reset_index()
         df.to_csv(os.path.join(save_dir, out_name), index=False)
         dfs.append(df)
@@ -91,25 +89,25 @@ def load_Yeo(config, df_meta):
 
 if __name__ == "__main__":
     print("Loading config and metadata...")
-    with open("src/data_processing/config.json", "r") as f:
+    with open("src/parameters/config.json", "r") as f:
         config = json.load(f)
 
     # Load the metadata
-    df_meta = load_metadata(config["cognitive_dataset"])
+    df_metadata = load_metadata(config["cognitive_dataset"])
 
     # Apply GMM labeling to CDR_SB
-    df_meta = gmm_label_CDR(df_meta)
+    df_metadata = gmm_label_cdr(df_metadata)
 
     # Save the metadata dataframes as csv
-    df_meta.to_csv(os.path.join(config['df_meta']), index=False)
+    df_metadata.to_csv(os.path.join(config['df_meta']), index=False)
 
     # Load the raw dataframes
     print("Loading FC maps...")
-    files_path, subject_id, raw_df = load_FDCmaps(config)
+    files_path, subject_id, raw_dataframe = load_fdc_maps(config)
 
     # Load the Yeo Network
     print("Loading Yeo networks...")
-    df_no_thr, df_thr01, df_thr02 =  load_Yeo(config, df_meta)
+    df_no_thr, df_thr01, df_thr02 =  load_yeo(config, df_metadata)
 
     print("Done.")
 

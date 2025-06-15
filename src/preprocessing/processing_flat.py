@@ -116,11 +116,11 @@ def main_processing_flat(df, df_meta, gm_mask_path, harvard_mask_path, do_eda=Fa
 
 
 if __name__ == "__main__":
-    with open("src/data_processing/config.json", "r") as f:
+    with open("src/preprocessing/config.json", "r") as f:
         config = json.load(f)
 
     # Generate outputs and summary
-    print("Starting processing...")
+    print("Starting preprocessing...")
     outputs, df_summary = main_processing_flat(
         df=pd.read_pickle(config['raw_df']),
         df_meta=pd.read_csv(config['df_meta']),

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ---- Pre-processing of 3D maps-----
+# ---- Pre-preprocessing of 3D maps-----
 # Before launching:
 # - Set the paths below
 # - Remove --threshold if data is not to be thresholded

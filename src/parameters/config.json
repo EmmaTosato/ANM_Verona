@@ -24,5 +24,9 @@
   "path_opt_cluster": "output/voxel/umap_optimal_clusters",
   "path_umap_regression" : "output/voxel/umap_regression",
 
-  "covariates": ["Sex", "Age", "Education"]
+  "covariates": ["Sex", "Age", "Education"],
+
+  "y_log_transform": false,
+  "group_name": "Group",
+  "color_by_group": true
 }

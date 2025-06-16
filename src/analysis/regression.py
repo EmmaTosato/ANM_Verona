@@ -6,14 +6,12 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-import matplotlib.pyplot as plt
-import seaborn as sns
 import os
 import warnings
 warnings.filterwarnings("ignore")
 import sys
-import matplotlib.collections as mcoll
 from analysis.dimensionality_reduction import x_features_return, run_umap
+from analysis.plotting import plot_ols_diagnostics, plot_actual_vs_predicted
 
 
 # ------------------------------------------------------------
@@ -113,143 +111,14 @@ def shuffling_regression(input_data, target, n_iterations=100):
 
 
 # ------------------------------------------------------------
-# Plot diagnostics: True vs Predicted and Residuals vs Fitted
-# ------------------------------------------------------------
-def plot_ols_diagnostics(target, predictions, residuals, title, save_path=None, plot_flag=True, color_by_group=False, group_labels=None):
-    if color_by_group and group_labels is not None:
-        # Prepare DataFrame
-        df_plot = pd.DataFrame({
-            'target': target,
-            'predictions': predictions,
-            'residuals': residuals,
-            'group': group_labels
-        })
-
-        # Get square axis limits
-        x_min, x_max = df_plot['target'].min(), df_plot['target'].max()
-        y_min, y_max = df_plot['predictions'].min(), df_plot['predictions'].max()
-        axis_min = min(x_min, y_min)
-        axis_max = max(x_max, y_max)
-
-        # Create plot
-        g = sns.lmplot(
-            data=df_plot,
-            x='target',
-            y='predictions',
-            hue='group',
-            palette="Set2",
-            height=6,  # Reduced height
-            aspect=1,  # Aspect ratio 1:1
-            scatter_kws=dict(s=100, alpha=0.6, edgecolor="black", linewidths=1),
-            line_kws=dict(linewidth=2.2),
-            ci=95
-        )
-
-        # Set square limits
-        g.set(xlim=(axis_min - 1, axis_max + 1), ylim=(axis_min - 1, axis_max + 1))
-        for ax in g.axes.flat:
-            ax.set_aspect('equal', adjustable='box')  # x = y
-            ax.tick_params(labelsize=12)
-            ax.spines["bottom"].set_linewidth(1.5)
-            ax.spines["left"].set_linewidth(1.5)
-            ax.grid(True, linestyle="--", linewidth=0.6, alpha=0.5)
-
-        # Confidence band opacity
-        for ax in g.axes.flat:
-            for coll in ax.collections:
-                if isinstance(coll, mcoll.PolyCollection):
-                    coll.set_alpha(0.2)
-
-        # Titles and labels
-        g.set_axis_labels("True", "Predicted", fontsize=14, weight="bold")
-        g.fig.suptitle(f"{title} - OLS True vs Predicted", fontsize=16, weight="bold", y=1.02)
-
-        # Legend formatting
-        leg = g.ax.get_legend()
-        if leg is not None:
-            leg.set_title("Group")
-            leg.set_bbox_to_anchor((1.01, 1.02))
-
-            legf = leg.get_frame()
-            legf.set_facecolor("white")
-            legf.set_edgecolor("black")
-            legf.set_linewidth(1)
-
-        # Save or show
-        if save_path:
-            clean_title = clean_title_string(title)
-            filename = f"{clean_title}_diagnostics_diagnosis.png"
-            g.savefig(os.path.join(save_path, filename), dpi=300, bbox_inches='tight', pad_inches=0.05)
-
-        if plot_flag:
-            plt.show()
-
-        plt.close()
-
-    # --- Two-panel plot: True vs Predicted and Residuals ---
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-
-    sns.scatterplot(x=target, y=predictions, ax=axes[0], color='#61bdcd',
-                    edgecolor='black', alpha=0.8, s=70, linewidth=0.9)
-    axes[0].plot([target.min(), target.max()], [target.min(), target.max()],
-                 '--', color='gray')
-    axes[0].set_title(f"{title} - OLS True vs Predicted")
-    axes[0].set_xlabel("True")
-    axes[0].set_ylabel("Predicted")
-
-    sns.scatterplot(x=predictions, y=residuals, ax=axes[1], color='#61bdcd',
-                    edgecolor='black', alpha=0.8, s=70, linewidth=0.9)
-    axes[1].axhline(0, linestyle='--', color='gray')
-    axes[1].set_title(f"{title} - OLS Residuals vs Fitted")
-    axes[1].set_xlabel("Predicted")
-    axes[1].set_ylabel("Residuals")
-
-    plt.tight_layout()
-
-    if save_path:
-        clean_title= clean_title_string(title)
-        filename = f"{clean_title}_diagnostics.png"
-        plt.savefig(os.path.join(save_path, filename), dpi=300)
-
-    if plot_flag:
-        plt.show()
-
-    plt.close()
-
-
-# ------------------------------------------------------------
-# Plot histograms of Actual and Predicted values
-# ------------------------------------------------------------
-def plot_actual_vs_predicted(target, predictions, title, save_path=None, plot_flag=True):
-    bins = np.arange(min(target), max(target) + 0.5, 0.5)
-    fig, axs = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
-
-    axs[0].hist(target, bins=bins, color='#61bdcd', edgecolor='black', alpha=0.85)
-    axs[0].set_title(f'{title} - Actual Distribution')
-
-    axs[1].hist(predictions, bins=bins, color='#95d6bb', edgecolor='black', alpha=0.85)
-    axs[1].set_title(f'{title} - Predicted Distribution')
-
-    plt.tight_layout()
-
-    if save_path:
-        clean_title = clean_title_string(title)
-        filename = f"{clean_title}_distribution.png"
-        plt.savefig(os.path.join(save_path, filename), dpi=300)
-
-    if plot_flag:
-        plt.show()
-
-
-# ------------------------------------------------------------
 # Main regression pipeline
 # ------------------------------------------------------------
 def main_regression(df_masked, df_meta, params):
     # Variable definition
     target_variable = params['target_variable']
-    plot_flag = params['plot_flag']
+    plot_flag = params['plot_regression']
     save_path = params['output_dir']
-    title_prefix = params['title_prefix']
+    title_prefix = params['prefix_regression']
 
     # Remove subjects without target value
     df_masked = remove_missing_values(df_masked, df_meta, target_variable)

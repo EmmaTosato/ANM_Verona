@@ -16,7 +16,7 @@ data/
 output/
 
 # Ignore runs
-training_results/
+runs/
 
 # Ignore tuning results
 tuning_results/

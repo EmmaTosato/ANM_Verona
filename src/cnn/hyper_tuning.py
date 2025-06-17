@@ -10,14 +10,20 @@ from utils import create_tuning_summary
 def tuning(base_args_path, grid_path):
     # Load fixed config and hyperparameter grid
     with open(base_args_path, "r") as f:
-        args = json.load(f)
+        config = json.load(f)
+
+    base_args = {**config["paths"], **config["training"], **config["fixed"], **config["experiment"]}
 
     with open(grid_path, "r") as f:
-        grid = json.load(f)
+        tuning_args = json.load(f)
+
+    grid = tuning_args["grid"]
+    overrides = tuning_args.get("experiment", {})
+    base_args.update(overrides)
 
     # Set the running directory
-    run_id = args["run_id"]  # fixed ID for this entire tuning execution
-    tuning_results_dir = args["tuning_results_dir"]
+    run_id = base_args["run_id"]  # fixed ID for this entire tuning execution
+    tuning_results_dir = base_args["tuning_results_dir"]
     run_dir = os.path.join(tuning_results_dir, f"tuning{run_id}")
     os.makedirs(run_dir, exist_ok=True)
 
@@ -30,7 +36,7 @@ def tuning(base_args_path, grid_path):
         config_id = i + 1
 
         # Prepare parameters for this config
-        params = deepcopy(args)
+        params = deepcopy(base_args)
         combo_params = dict(zip(keys, combo))
         params.update(combo_params)
 

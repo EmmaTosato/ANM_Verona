@@ -1,8 +1,17 @@
 {
-"optimizer": ["adam", "sgd"],
-"batch_size": [4,16],
-"lr": [1e-3],
-"weight_decay": [1e-3],
-"model_type": ["resnet", "densenet"],
-"epochs": [100]
+  "grid": {
+    "optimizer": ["adam"],
+    "batch_size": [16],
+    "lr": [1e-3],
+    "weight_decay": [1e-3],
+    "model_type": ["resnet"],
+    "epochs": [2]
+  },
+
+  "experiment": {
+    "group1": "ADNI",
+    "group2": "CBS",
+    "run_id": 6,
+    "tuning_flag": true
+  }
 }

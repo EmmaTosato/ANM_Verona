@@ -80,9 +80,11 @@ def create_split(args):
 
 
 if __name__ == '__main__':
-    config_path = "parameters/config_split.json"
+    config_path = "parameters/split.json"
 
     with open(config_path, "r") as f:
-        args = json.load(f)
+        config = json.load(f)
+
+    args = {**config["paths"], **config["fixed"], **config["split"]}
 
     create_split(args)

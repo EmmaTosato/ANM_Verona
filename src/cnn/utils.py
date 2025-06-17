@@ -1,21 +1,23 @@
 import numpy as np
 
 # Create a summary of the cross-validation training process
-def create_training_summary(params, best_fold_info, fold_accuracies, fold_val_losses):
+def create_training_summary(params, best_fold_info, fold_accuracies, fold_val_losses, fold_train_losses):
     return {
         'run id': f"run{params['run_id']}",
         'group': f"{params['group1']} vs {params['group2']}",
         'threshold': params.get("threshold", "unspecified"),
         'best fold': best_fold_info['fold'],
         'best epoch': best_fold_info['epoch'],
-        'best accuracy': round(best_fold_info['accuracy'], 4),
-        'average accuracy': round(float(np.mean(fold_accuracies)), 4),
-        'average validation loss': round(float(np.mean(fold_val_losses)), 4),
+        'best accuracy': round(best_fold_info['accuracy'], 3),
+        'best validation loss': round(best_fold_info['val_loss'], 3),
+        'average accuracy': round(float(np.mean(fold_accuracies)), 3),
+        'average training loss': round(float(np.mean(fold_train_losses)), 3),
+        'average validation loss': round(float(np.mean(fold_val_losses)), 3),
         'model_type': params['model_type'],
         'optimizer': params['optimizer'],
-        'lr': params['lr'],
+        'lr': round(params['lr'], 3),
         'batch_size': params['batch_size'],
-        'weight_decay': params['weight_decay'],
+        'weight_decay': round(params['weight_decay'], 3),
         'epochs': params['epochs'],
         'test size': params['test_size']
     }
@@ -27,14 +29,14 @@ def create_tuning_summary(config_id, params, metrics):
         'group': f"{params['group1']} vs {params['group2']}",
         'threshold': params.get("threshold", "unspecified"),
         'best_fold': metrics['best_fold'],
-        'best_accuracy': metrics['best_accuracy'],
-        'avg_accuracy': metrics['avg_accuracy'],
-        'avg_train_loss': metrics['avg_train_loss'],
-        'avg_val_loss': metrics['avg_val_loss'],
+        'best_accuracy': round(metrics['best_accuracy'], 3),
+        'avg_accuracy': round(metrics['avg_accuracy'], 3),
+        'avg_train_loss': round(metrics['avg_train_loss'], 3),
+        'avg_val_loss': round(metrics['avg_val_loss'], 3),
         'optimizer': params['optimizer'],
         'batch_size': params['batch_size'],
-        'lr': params['lr'],
-        'weight_decay': params['weight_decay'],
+        'lr': round(params['lr'], 3),
+        'weight_decay': round(params['weight_decay'], 3),
         'model_type': params['model_type'],
         'epochs': params['epochs'],
         'test size': params['test_size']

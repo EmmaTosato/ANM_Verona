@@ -5,15 +5,15 @@ import pandas as pd
 import numpy as np
 from torch.utils.data import DataLoader
 from sklearn.model_selection import StratifiedKFold
-from datasets import FCDataset, AugmentedFCDataset
-from models import ResNet3D, DenseNet3D
-from train import train, validate, plot_losses
-from test import evaluate, compute_metrics, print_metrics, plot_confusion_matrix
 import json
 import random
 import sys
-from openpyxl import load_workbook
-from pandas import ExcelWriter
+
+from datasets import FCDataset, AugmentedFCDataset
+from models import ResNet3D, DenseNet3D, VGG16_3D
+from train import train, validate, plot_losses
+from test import evaluate, compute_metrics, plot_confusion_matrix
+
 from utils import (
     create_training_summary,
     create_testing_summary
@@ -31,6 +31,7 @@ def set_seed(seed):
 # Trains the model and evaluates on validation set at each epoch.
 def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fold):
     best_accuracy = -float('inf')
+    best_val_loss = float('inf')
     best_epoch = -1
     train_losses, val_losses, val_accuracies = [], [], []
 
@@ -39,7 +40,7 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
         train_loss = train(model, train_loader, criterion, optimizer, params['device'])
         val_loss, val_accuracy = validate(model, val_loader, criterion, params['device'])
 
-        print(f"Epoch {epoch+1}/{params['epochs']} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_accuracy:.4f}")
+        print(f"Epoch {epoch+1}/{params['epochs']} | Train Loss: {train_loss:.3f} | Val Loss: {val_loss:.3f} | Val Acc: {val_accuracy:.3f}")
 
         # Store losses and accuracy for later analysis
         train_losses.append(train_loss)
@@ -47,11 +48,11 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
         val_accuracies.append(val_accuracy)
 
         # Save best epoch in a checkpoint based on validation accuracy
-        if val_accuracy > best_accuracy:
+        if val_accuracy > best_accuracy or (val_accuracy == best_accuracy and val_loss < best_val_loss):
             best_accuracy = val_accuracy
+            best_val_loss = val_loss
             best_epoch = epoch + 1
             best_train_loss = train_loss
-            best_val_loss = val_loss
             torch.save({
                 'state_dict': model.state_dict(),
                 'optimizer_state': optimizer.state_dict(),
@@ -62,7 +63,7 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
                 'fold': fold
             }, params['ckpt_path_evaluation'])
 
-    print(f"\nBest model saved with val accuracy {best_accuracy:.4f} at epoch {best_epoch}\n")
+    print(f"\nBest model saved with val accuracy {best_accuracy:.3} at epoch {best_epoch}\n")
 
     # Save learning curves
     if params['plot']:
@@ -156,10 +157,14 @@ def main_worker(params):
         skf = StratifiedKFold(n_splits=params['n_folds'], shuffle=True, random_state=params['seed'])
 
         # Variables
-        best_fold_info = {'accuracy': -float('inf')}
+        best_fold_info = {
+            'accuracy': -float('inf'),
+            'val_loss': float('inf')
+        }
         fold_accuracies = []
         fold_train_losses = []
         fold_val_losses = []
+        fold_infos = []
 
         # Training
         print("================================")
@@ -184,6 +189,8 @@ def main_worker(params):
                 model = ResNet3D(n_classes=2).to(device)
             elif params['model_type'] == 'densenet':
                 model = DenseNet3D(n_classes=2).to(device)
+            elif params['model_type'] == 'vgg16':
+                model = VGG16_3D(num_classes=2, input_channels=1).to(device)
             else:
                 raise ValueError("Unsupported model type")
 
@@ -201,39 +208,54 @@ def main_worker(params):
             params['ckpt_path_evaluation'] = os.path.join(params['actual_run_dir'],f"best_model_fold{fold + 1}.pt")
             best_accuracy, best_train_loss, best_val_loss, best_epoch = run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fold + 1 )
 
-            # Save accuracy
+            # Save and track best fold
             fold_accuracies.append(best_accuracy)
             fold_train_losses.append(best_train_loss)
             fold_val_losses.append(best_val_loss)
+            fold_infos.append({
+                'fold': fold + 1,
+                'accuracy': best_accuracy,
+                'val_loss': best_val_loss,
+                'model_path': params['ckpt_path_evaluation'],
+                'epoch': best_epoch
+            })
 
-            # Track best fold globally
-            if best_accuracy > best_fold_info['accuracy']:
-                best_fold_info = {
-                    'fold': fold + 1,
-                    'accuracy': best_accuracy,
-                    'model_path': params['ckpt_path_evaluation'],
-                    'epoch': best_epoch
-                }
+        # Decide best fold after all folds are completed
+        for info in fold_infos:
+            if (
+                    info['accuracy'] > best_fold_info['accuracy']
+                    or (
+                    info['accuracy'] == best_fold_info['accuracy'] and info['val_loss'] < best_fold_info['val_loss'])
+            ):
+                best_fold_info = info
 
-        # Define the best model (in case of subsequential evaluation)
         params['ckpt_path_evaluation'] = best_fold_info['model_path']
 
         print("=================================")
         print("=== CROSS VALIDATION SUMMARY ====")
         print("=================================")
-        print(f"Run number:{params['run_id']}")
-        print(f"Group: {params['group1']} vs {params['group2']}")
-        print(f"Best fold: {best_fold_info['fold']}")
-        print(f"Best epoch of that fold: {best_fold_info['epoch']}")
-        print(f"Best accuracy: {best_fold_info['accuracy']:.4f}")
-        print(f"Average accuracy: {np.mean(fold_accuracies):.4f}")
-        print(f"Average training loss: {np.mean(fold_train_losses):.4f}")
-        print(f"Average validation loss: {np.mean(fold_val_losses):.4f}")
-        print(f"Best model path: {best_fold_info['model_path']}\n\n")
+        print(f"Run number            : {params['run_id']}")
+        print(f"Group                 : {params['group1']} vs {params['group2']}")
+        print(f"Best fold             : {best_fold_info['fold']}")
+        print(f"Best epoch            : {best_fold_info['epoch']}")
+        print(f"Best accuracy         : {best_fold_info['accuracy']:.3f}")
+        print(f"Best validation loss  : {best_fold_info['val_loss']:.3f}")
+        print(f"Average accuracy      : {np.mean(fold_accuracies):.3f}")
+        print(f"Average training loss : {np.mean(fold_train_losses):.3f}")
+        print(f"Average val loss      : {np.mean(fold_val_losses):.3f}")
+        print(f"Best model path       : {best_fold_info['model_path']}\n")
+
+        print("NETWORK INFORMATION: ")
+        print(f"Model type            : {params['model_type']}")
+        print(f"Epochs                : {params['epochs']}")
+        print(f"Batch size            : {params['batch_size']}")
+        print(f"Optimizer             : {params['optimizer']}")
+        print(f"Learning rate         : {params['lr']}")
+        print(f"Weight decay          : {params['weight_decay']}")
 
         if not params.get("tuning_flag", False):
             summary_path = os.path.join(params['runs_dir'], "all_training_results.csv")
-            row_summary = create_training_summary(params, best_fold_info, fold_accuracies, fold_val_losses)
+            row_summary = create_training_summary(params, best_fold_info, fold_accuracies, fold_val_losses, fold_train_losses)
 
             df_summary = pd.DataFrame([row_summary])
 
@@ -265,6 +287,8 @@ def main_worker(params):
             model = ResNet3D(n_classes=2).to(device)
         elif params['model_type'] == 'densenet':
             model = DenseNet3D(n_classes=2).to(device)
+        elif params['model_type'] == 'vgg16':
+            model = VGG16_3D(num_classes=2, input_channels=1).to(device)
         else:
             raise ValueError("Unsupported model type")
 
@@ -322,7 +346,9 @@ if __name__ == '__main__':
     config_path = "parameters/config.json"
 
     with open(config_path, "r") as f:
-        args = json.load(f)
+        config = json.load(f)
+
+    args = {**config["paths"], **config["training"], **config["fixed"], **config["experiment"]}
 
     # Some checks
     if args['crossval_flag'] and args['tuning_flag'] and args['evaluation_flag']:

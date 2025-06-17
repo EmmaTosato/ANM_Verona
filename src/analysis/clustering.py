@@ -176,26 +176,27 @@ def main_clustering(df_masked, df_meta, params):
 if __name__ == "__main__":
     # Load json
     print("\nLoading config and metadata...")
+    with open("src/parameters/paths.json", "r") as f:
+        paths = json.load(f)
+
     with open("src/parameters/config.json", "r") as f:
         config = json.load(f)
 
-    with open("src/parameters/run.json", "r") as f:
-        run = json.load(f)
+    args = {**paths, **config["data"], **config["fixed"], **config["plotting"], **config["experiment"]}
 
-    config.update(run)
 
     # Load configuration and metadata
-    df_masked_raw = pd.read_pickle(config['df_masked'])
-    df_metadata = pd.read_csv(config['df_meta'])
+    df_masked_raw = pd.read_pickle(args['df_masked'])
+    df_metadata = pd.read_csv(args['df_meta'])
 
     # Check if threshold is set
-    if config.get("threshold") in [0.1, 0.2]:
-        config['prefix_cluster'] = f"{config['threshold']} Threshold"
+    if args.get("threshold") in [0.1, 0.2]:
+        args['prefix_cluster'] = f"{args['threshold']} Threshold"
     else:
-        config['prefix_cluster'] = "No Threshold"
+        args['prefix_cluster'] = "No Threshold"
 
     # Run UMAP and clustering
-    umap_summary = main_clustering(df_masked_raw, df_metadata, config )
+    umap_summary = main_clustering(df_masked_raw, df_metadata, args )
 
 
 

@@ -89,7 +89,7 @@ def load_yeo(params, df_meta):
 
 if __name__ == "__main__":
     print("Loading config and metadata...")
-    with open("src/parameters/config.json", "r") as f:
+    with open("src/parameters/paths.json", "r") as f:
         config = json.load(f)
 
     # Load the metadata

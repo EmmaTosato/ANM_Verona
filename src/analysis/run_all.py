@@ -6,7 +6,7 @@ from copy import deepcopy
 # Path to script and json
 BASE_DIR = "/preprocessing"
 SCRIPT_PATH = os.path.join(BASE_DIR, "regression.py")
-JSON_PATH = os.path.join(BASE_DIR, "run.json")
+JSON_PATH = os.path.join(BASE_DIR, "config.json")
 
 # Base config
 base_config = {

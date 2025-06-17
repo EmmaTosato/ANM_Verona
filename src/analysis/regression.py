@@ -183,43 +183,43 @@ def main_regression(df_masked, df_meta, params):
 
 if __name__ == "__main__":
     # Load json
+    with open("src/parameters/paths.json", "r") as f:
+        paths = json.load(f)
+
     with open("src/parameters/config.json", "r") as f:
         config = json.load(f)
 
-    with open("src/parameters/run.json", "r") as f:
-        run = json.load(f)
-
-    config.update(run)
+    args = {**paths, **config["data"], **config["fixed"], **config["plotting"], **config["experiment"]}
 
     # Load configuration and metadata
-    df_masked_raw = pd.read_pickle(config['df_masked'])
-    df_metadata = pd.read_csv(config['df_meta'])
+    df_masked_raw = pd.read_pickle(args['df_masked'])
+    df_metadata = pd.read_csv(args['df_meta'])
 
     # Set output directory
-    output_dir = os.path.join(str(config["path_umap_regression"]), str(config["target_variable"]))
+    output_dir = os.path.join(str(args["path_umap_regression"]), str(args["target_variable"]))
     os.makedirs(output_dir, exist_ok=True)
 
     # Check if threshold is set
-    if config.get("threshold") in [0.1, 0.2]:
-        config['log'] = f"log_{config['threshold']}_threshold"
-        config['prefix_regression'] = f"{config['threshold']} Threshold"
+    if args.get("threshold") in [0.1, 0.2]:
+        args['log'] = f"log_{args['threshold']}_threshold"
+        args['prefix_regression'] = f"{args['threshold']} Threshold"
     else:
-        config['log'] = "log_no_threshold"
-        config['prefix_regression'] = "No Threshold"
+        args['log'] = "log_no_threshold"
+        args['prefix_regression'] = "No Threshold"
 
     # Check if covariates are present and modify titles and path
-    if config['flag_covariates']:
-        config['log'] = f"{config['log']}"
-        config['prefix_regression'] = f"{config['prefix_regression']} - Covariates"
+    if args['flag_covariates']:
+        args['log'] = f"{args['log']}"
+        args['prefix_regression'] = f"{args['prefix_regression']} - Covariates"
         output_dir = os.path.join(output_dir, "covariates")
         os.makedirs(output_dir, exist_ok=True)
     else:
-        config['covariates'] = None
+        args['covariates'] = None
         output_dir = os.path.join(output_dir, "no_covariates")
         os.makedirs(output_dir, exist_ok=True)
 
-    if config['group_regression']:
-        group_col = config['group_col']
+    if args['group_regression']:
+        group_col = args['group_col']
 
         # Crea directory principale per il group_col
         output_dir = os.path.join(output_dir, re.sub(r'[\s\-]+', '_', group_col.strip().lower()))
@@ -233,10 +233,10 @@ if __name__ == "__main__":
 
             output_dir = os.path.join(output_dir, group_id_str)
             os.makedirs( output_dir, exist_ok=True)
-            config['output_dir'] = output_dir
+            args['output_dir'] = output_dir
 
             # Log file specifico per il gruppo
-            log_name = f'{config["log"]}_{group_col}_{group_id_str}.txt'.lower()
+            log_name = f'{args["log"]}_{group_col}_{group_id_str}.txt'.lower()
             sys.stdout = open(os.path.join(output_dir, log_name), "w")
 
             print(f"\n=== Group by {group_col} - {group_id_str} ===")
@@ -247,18 +247,18 @@ if __name__ == "__main__":
             df_cluster = df_masked_raw[df_masked_raw["ID"].isin(ids)].reset_index(drop=True)
 
             # Esegui la regressione
-            main_regression(df_cluster, df_meta_cluster, config)
+            main_regression(df_cluster, df_meta_cluster, args)
     else:
         # Modify output directory
         output_dir = os.path.join(output_dir, 'all')
         os.makedirs(output_dir, exist_ok=True)
-        config['output_dir'] = output_dir
+        args['output_dir'] = output_dir
 
         # Redirect stdout
-        sys.stdout = open(os.path.join(output_dir, config['log']), "w")
+        sys.stdout = open(os.path.join(output_dir, args['log']), "w")
 
         # Run regression
-        main_regression(df_masked_raw,df_metadata, config)
+        main_regression(df_masked_raw, df_metadata, args)
 
 
 

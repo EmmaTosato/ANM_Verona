@@ -116,7 +116,7 @@ def main_processing_flat(df, df_meta, gm_mask_path, harvard_mask_path, do_eda=Fa
 
 
 if __name__ == "__main__":
-    with open("src/preprocessing/config.json", "r") as f:
+    with open("src/preprocessing/paths.json", "r") as f:
         config = json.load(f)
 
     # Generate outputs and summary

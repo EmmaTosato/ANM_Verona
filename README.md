@@ -1,3 +1,4 @@
 # ANM Verona
 
-## TODO: scrivi
+## CNN
+

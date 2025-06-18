@@ -1,16 +1,18 @@
 {
   "grid": {
-    "optimizer": ["adam"],
-    "batch_size": [16],
-    "lr": [1e-3],
-    "weight_decay": [1e-3],
-    "model_type": ["resnet"],
-    "epochs": [2]
+    "optimizer": ["adam", "sgd"],
+    "batch_size": [16, 32, 64],
+    "lr": [1e-3, 1e-4],
+    "weight_decay": [1e-3, 1e-4],
+    "model_type": ["resnet", "densenet", "vgg16"],
+    "epochs": [50],
+    "n_folds": [5],
+    "seed": [42]
   },
 
   "experiment": {
     "group1": "ADNI",
-    "group2": "CBS",
+    "group2": "PSP",
     "run_id": 6,
     "tuning_flag": true
   }

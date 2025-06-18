@@ -16,7 +16,8 @@ from test import evaluate, compute_metrics, plot_confusion_matrix
 
 from utils import (
     create_training_summary,
-    create_testing_summary
+    create_testing_summary,
+    resolve_split_csv_path
 )
 
 
@@ -140,7 +141,9 @@ def main_worker(params):
     set_seed(params['seed'])
 
     # Load precomputed train/val/test split
-    df = pd.read_csv(params['split_csv'])
+    split_csv_path = resolve_split_csv_path(params['split_dir'], params['group1'], params['group2'])
+    df = pd.read_csv(split_csv_path)
+
     train_df = df[df['split'] == 'train'].reset_index(drop=True)
     val_df = df[df['split'] == 'val'].reset_index(drop=True) if 'val' in df['split'].unique() else None
     test_df = df[df['split'] == 'test'].reset_index(drop=True)
@@ -343,6 +346,7 @@ def main_worker(params):
 
 
 if __name__ == '__main__':
+    # Load json file
     config_path = "parameters/config.json"
 
     with open(config_path, "r") as f:

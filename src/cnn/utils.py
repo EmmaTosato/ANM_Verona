@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 # Create a summary of the cross-validation training process
 def create_training_summary(params, best_fold_info, fold_accuracies, fold_val_losses, fold_train_losses):
@@ -53,3 +54,20 @@ def create_testing_summary(params, metrics):
     metrics_rounded = {k: round(v, 3) for k, v in metrics.items() if k != "confusion_matrix"}
     summary.update(metrics_rounded)
     return summary
+
+
+def resolve_split_csv_path(split_dir, group1, group2):
+    fname1 = f"{group1}_{group2}_splitted.csv"
+    fname2 = f"{group2}_{group1}_splitted.csv"
+
+    path1 = os.path.join(split_dir, fname1)
+    path2 = os.path.join(split_dir, fname2)
+
+    if os.path.exists(path1):
+        print(f"\nUsing split file: {path1}\n")
+        return path1
+    elif os.path.exists(path2):
+        print(f"\nUsing split file: {path2}\n")
+        return path2
+    else:
+        raise FileNotFoundError(f"No split CSV found for groups {group1} and {group2} in {split_dir}\n")

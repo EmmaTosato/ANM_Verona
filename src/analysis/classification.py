@@ -14,7 +14,8 @@ from sklearn.ensemble import RandomForestClassifier
 
 from preprocessing.loading import load_args_and_data
 from preprocessing.processflat import x_features_return
-from analysis.umap_run import run_umap
+from umap_run import run_umap
+from preprocessing.config import ConfigLoader
 
 np.random.seed(42)
 
@@ -116,7 +117,9 @@ def classification_pipeline(df_input, df_meta, split_path, args, classification)
     return pd.DataFrame(all_results)
 
 def main():
-    from preprocessing.loading import load_args_resolved
+    loader = ConfigLoader()
+    args, config, paths = loader.load()
+
 
     args, config, paths = load_args_resolved()
     classification = config["classification"]

@@ -12,6 +12,8 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from preprocessing.loading import load_args_and_data
 from preprocessing.processflat import x_features_return
 from analysis.umap_run import run_umap
+from preprocessing.processflat import x_features_return
+from preprocessing.config import ConfigLoader
 from analysis.plotting import plot_ols_diagnostics, plot_actual_vs_predicted
 
 warnings.filterwarnings("ignore")
@@ -90,6 +92,48 @@ def main():
     args['log'] = f"log_{args['threshold']}_threshold" if args['threshold'] in [0.1, 0.2] else "log_no_threshold"
     args['prefix'] = f"{args['threshold']} Threshold" if args['threshold'] in [0.1, 0.2] else "No Threshold"
 
+    print("\n\n" + "-" * 80)
+    print("SHUFFLING REGRESSION")
+    print("-" * 80)
+    print(f"R² real: {r2_real:.4f}")
+    print(f"R² shuffled: {float(np.mean(r2_shuffled)):.4f}")
+    print(f"Empirical p:  {p_value:.4f}")
+
+    print("\n\n" + "-" * 80)
+    print("RMSE BY DIAGNOSTIC GROUP AND OVERALL METRICS")
+    print("-" * 80)
+    print(group_rmse_stats)
+    print("\n")
+    print(f"MAE:  {round(mean_absolute_error(y, y_pred), 4)}")
+    print(f"RMSE: {round(np.sqrt(mean_squared_error(y, y_pred)), 4)}")
+
+    print("\n\n" + "-" * 80)
+    print("SUBJECTS RANKED BY RMSE (BEST TO WORST)")
+    print("-" * 80)
+    print(subject_errors_sorted.to_string(index=False))
+
+
+if __name__ == "__main__":
+    loader = ConfigLoader()
+    args, _, _ = loader.load()
+
+    # Load configuration and metadata
+    df_masked_raw = pd.read_pickle(args['df_path'])
+    df_metadata = pd.read_csv(args['df_meta'])
+
+    # Set output directory
+    output_dir = os.path.join(str(args["path_umap_regression"]), str(args["target_variable"]))
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Check if threshold is set
+    if args.get("threshold") in [0.1, 0.2]:
+        args['log'] = f"log_{args['threshold']}_threshold"
+        args['prefix_regression'] = f"{args['threshold']} Threshold"
+    else:
+        args['log'] = "log_no_threshold"
+        args['prefix_regression'] = "No Threshold"
+
+    # Check if covariates are present and modify titles and path
     if args['flag_covariates']:
         args['prefix'] += " - Covariates"
         base_out = os.path.join(base_out, "covariates")

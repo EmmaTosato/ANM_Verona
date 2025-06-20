@@ -3,15 +3,15 @@ import pandas as pd
 import pytest
 import json
 
-from src.data_processing.loading import load_FDCmaps, load_metadata, gmm_label_CDR, load_Yeo
+from preprocessing.data_loader import load_fdc_maps, load_metadata, gmm_label_cdr, load_yeo
 
 # Load config
-with open("/preprocessing/parameters/paths.json", "r") as f:
+with open("src/parameters/paths.json", "r") as f:
     config = json.load(f)
 
 
-def test_load_FDCmaps():
-    files_path, subject_id, raw_df = load_FDCmaps(config)
+def test_load_fdc_maps():
+    files_path, subject_id, raw_df = load_fdc_maps(config)
 
     # Check number of files and subjects
     assert len(files_path) == 176, f"Expected 176 files, got {len(files_path)}"
@@ -50,13 +50,13 @@ def test_load_metadata():
 
 
 
-def test_load_Yeo():
+def test_load_yeo():
     # Load metadata and apply GMM labels
     df_meta = load_metadata(config["cognitive_dataset"])
-    df_meta = gmm_label_CDR(df_meta)
+    df_meta = gmm_label_cdr(df_meta)
 
     # Load Yeo networks
-    df_no_thr, df_thr01, df_thr02 = load_Yeo(config, df_meta)
+    df_no_thr, df_thr01, df_thr02 = load_yeo(config, df_meta)
 
     # Expected shape including ID column
     expected_shape = (176, 9)

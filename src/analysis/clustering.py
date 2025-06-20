@@ -13,6 +13,10 @@ from preprocessing.loading import load_args_and_data
 from preprocessing.processflat import x_features_return
 from analysis.umap_run import run_umap
 from analysis.clustering_evaluation import evaluate_kmeans, evaluate_gmm, evaluate_hdbscan, evaluate_consensus
+from preprocessing.config import ConfigLoader
+import json
+import warnings
+warnings.filterwarnings("ignore")
 
 warnings.filterwarnings("ignore")
 np.random.seed(42)
@@ -105,4 +109,13 @@ def main():
     clustering_pipeline(df_input, df_meta, args)
 
 if __name__ == "__main__":
-    main()
+    loader = ConfigLoader()
+    args, _, _ = loader.load()
+
+    df_masked_raw = pd.read_pickle(args['df_path'])
+    df_metadata = pd.read_csv(args['df_meta'])
+
+    # Run UMAP and clustering
+    umap_summary = main_clustering(df_masked_raw, df_metadata, args )
+
+

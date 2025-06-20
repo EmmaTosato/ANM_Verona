@@ -1,165 +1,96 @@
 # regression.py
 
+import os
+import sys
 import re
-import json
+import warnings
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-import os
-import warnings
-warnings.filterwarnings("ignore")
-import sys
+
+from preprocessing.loading import load_args_and_data
+from preprocessing.processflat import x_features_return
 from analysis.umap_run import run_umap
 from preprocessing.processflat import x_features_return
 from preprocessing.config import ConfigLoader
 from analysis.plotting import plot_ols_diagnostics, plot_actual_vs_predicted
 
-# ------------------------------------------------------------
-# Utils
-# ------------------------------------------------------------
+warnings.filterwarnings("ignore")
+np.random.seed(42)
+
 def group_value_to_str(value):
-    if pd.isna(value):
-        return "nan"
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
+    if pd.isna(value): return "nan"
+    if isinstance(value, float) and value.is_integer(): return str(int(value))
     return str(value)
 
-def clean_title_string(title):
-    title = re.sub(r'\bcovariates\b', '', title, flags=re.IGNORECASE)
-    title = re.sub(r'[\s\-]+', '_', title)
-    title = re.sub(r'_+', '_', title)
-    title = title.strip('_')
-
-    return title.lower()
-
-
-# ------------------------------------------------------------
-# Removing subjects without target values
-# ------------------------------------------------------------
 def remove_missing_values(raw_df, meta_df, target_col):
-    subjects_nan = meta_df[meta_df[target_col].isna()]['ID'].tolist()
-    df = raw_df[~raw_df['ID'].isin(subjects_nan)].reset_index(drop=True)
-    return df
+    ids_nan = meta_df[meta_df[target_col].isna()]['ID'].tolist()
+    return raw_df[~raw_df['ID'].isin(ids_nan)].reset_index(drop=True)
 
-# ------------------------------------------------------------
-# UMAP features + optional covariates
-# ------------------------------------------------------------
 def build_design_matrix(df_merged, x_umap, covariates=None):
     x = pd.DataFrame(x_umap, columns=['UMAP1', 'UMAP2'])
     if covariates:
-        covar = df_merged[covariates]
-        covar = pd.get_dummies(covar, drop_first=True)
+        covar = pd.get_dummies(df_merged[covariates], drop_first=True)
         x = pd.concat([x, covar], axis=1)
     return x.astype(float)
 
-# ------------------------------------------------------------
-# Fit OLS regression model
-# ------------------------------------------------------------
 def fit_ols_model(input_data, target):
-    # Input and target
-    input_constants = sm.add_constant(input_data)
-    target = target.astype(float)
+    input_const = sm.add_constant(input_data)
+    model = sm.OLS(target, input_const).fit()
+    preds = model.predict(input_const)
+    residuals = target - preds
+    return model, preds, residuals
 
-    # Fit OLS model
-    model_ols = sm.OLS(target, input_constants).fit()
-
-    # Predictions and residuals
-    predictions = model_ols.predict(input_constants)
-    residuals = target - predictions
-    return model_ols, predictions, residuals
-
-# ------------------------------------------------------------
-# Compute RMSE per subject
-# ------------------------------------------------------------
-def compute_rmse_per_subject(df_merged, y_pred, residuals):
-    rmse_subject = np.sqrt(residuals ** 2)
-    subject_errors = df_merged[['ID', 'Group', 'CDR_SB']].copy()
-    subject_errors['Predicted CDR_SB'] = y_pred
-    subject_errors['RMSE'] = rmse_subject
-
-    group_rmse_stats = subject_errors.groupby('Group')['RMSE'].agg(
-        Mean_RMSE='mean',
-        Std_RMSE='std',
-        N='count'
-    ).round(2).sort_values('Mean_RMSE', ascending=False)
-
-    return subject_errors, group_rmse_stats
-
-# ------------------------------------------------------------
-# Compute Shuffling Regression
-# ------------------------------------------------------------
-def shuffling_regression(input_data, target, n_iterations=100):
-    # Input and target
-    input_constants = sm.add_constant(input_data)
-    target = target.astype(float)
-
-    # Fit OLS
-    model_real = sm.OLS(target, input_constants).fit()
-    r2_real = model_real.rsquared
-
-    # Perform shuffling
-    r2_shuffled = []
-    for _ in range(n_iterations):
-        y_shuffled = target.sample(frac=1, replace=False).reset_index(drop=True)
-        model_shuffled = sm.OLS(y_shuffled, input_constants).fit()
-        r2_shuffled.append(model_shuffled.rsquared)
-
-    # Compute empirical p-value
+def shuffling_regression(input_data, target, n_iter=100):
+    input_const = sm.add_constant(input_data)
+    r2_real = sm.OLS(target, input_const).fit().rsquared
+    r2_shuffled = [sm.OLS(target.sample(frac=1).reset_index(drop=True), input_const).fit().rsquared for _ in range(n_iter)]
     p_value = np.mean([r >= r2_real for r in r2_shuffled])
-
     return r2_real, r2_shuffled, p_value
 
+def compute_rmse_stats(df_merged, y_pred, residuals):
+    rmse_vals = np.sqrt(residuals ** 2)
+    df_err = df_merged[['ID', 'Group', 'CDR_SB']].copy()
+    df_err['Predicted CDR_SB'] = y_pred
+    df_err['RMSE'] = rmse_vals
+    stats = df_err.groupby('Group')['RMSE'].agg(Mean_RMSE='mean', Std_RMSE='std', N='count').round(2)
+    return df_err.sort_values('RMSE'), stats
 
-# ------------------------------------------------------------
-# Main regression pipeline
-# ------------------------------------------------------------
-def main_regression(df_masked, df_meta, params):
-    # Variable definition
-    target_variable = params['target_variable']
-    plot_flag = params['plot_regression']
-    save_path = params['output_dir']
-    title_prefix = params['prefix_regression']
+def regression_pipeline(df_input, df_meta, args):
+    df_input = remove_missing_values(df_input, df_meta, args['target_variable'])
+    df_merged, x = x_features_return(df_input, df_meta)
+    y = np.log1p(df_merged[args['target_variable']]) if args['y_log_transform'] else df_merged[args['target_variable']]
+    x_umap = run_umap(x, plot_flag=False)
+    x_ols = build_design_matrix(df_merged, x_umap, args['covariates'])
 
-    # Remove subjects without target value
-    df_masked = remove_missing_values(df_masked, df_meta, target_variable)
-
-    # Merge voxel and metadata
-    df_merged, x = x_features_return(df_masked, df_meta)
-
-    # Target variable
-    y = df_merged[target_variable]
-
-    if params['y_log_transform']:
-        y = np.log1p(y)
-
-    # Reduce dimensionality with UMAP
-    x_umap = run_umap(x, plot_flag=False, save_path = None, title = None)
-
-    # Regression with OLS
-    x_ols = build_design_matrix(df_merged, x_umap, params['covariates'])
-
-    # Fit OLS model
     model, y_pred, residuals = fit_ols_model(x_ols, y)
-
-    # Shuffling regression
     r2_real, r2_shuffled, p_value = shuffling_regression(x_ols, y)
+    df_sorted, rmse_stats = compute_rmse_stats(df_merged, y_pred, residuals)
 
-    # Statistics
-    subject_errors, group_rmse_stats = compute_rmse_per_subject(df_merged, y_pred, residuals)
-    subject_errors_sorted = subject_errors.sort_values(by='RMSE').reset_index(drop=True)
+    if args['plot_regression']:
+        group_labels = df_merged[args['group_name']]
+        plot_ols_diagnostics(y, y_pred, residuals, args['prefix'], args['output_dir'], True, args['color_by_group'], group_labels)
+        plot_actual_vs_predicted(y, y_pred, args['prefix'], args['output_dir'], True)
 
-    # Plot diagnostics if requested
-
-    if plot_flag or save_path:
-        group_labels = df_merged[params['group_name']]
-        plot_ols_diagnostics(y, y_pred, residuals, title=title_prefix ,save_path=save_path, plot_flag=plot_flag, color_by_group=params['color_by_group'], group_labels=group_labels)
-        plot_actual_vs_predicted(y, y_pred, title=title_prefix, save_path=save_path, plot_flag=plot_flag)
-
-
-    # Print results
     print("OLS REGRESSION SUMMARY")
     print(model.summary())
+    print("\nSHUFFLING REGRESSION")
+    print(f"R^2 real: {r2_real:.4f} | shuffled mean: {np.mean(r2_shuffled):.4f} | p-value: {p_value:.4f}")
+    print("\nRMSE BY GROUP")
+    print(rmse_stats)
+    print("\nMAE:", round(mean_absolute_error(y, y_pred), 4))
+    print("RMSE:", round(np.sqrt(mean_squared_error(y, y_pred)), 4))
+    print("\nSUBJECTS SORTED BY RMSE")
+    print(df_sorted.to_string(index=False))
+
+def main():
+    args, df_input, df_meta = load_args_and_data()
+    base_out = os.path.join(args["path_umap_regression"], args["target_variable"])
+    os.makedirs(base_out, exist_ok=True)
+
+    args['log'] = f"log_{args['threshold']}_threshold" if args['threshold'] in [0.1, 0.2] else "log_no_threshold"
+    args['prefix'] = f"{args['threshold']} Threshold" if args['threshold'] in [0.1, 0.2] else "No Threshold"
 
     print("\n\n" + "-" * 80)
     print("SHUFFLING REGRESSION")
@@ -204,59 +135,33 @@ if __name__ == "__main__":
 
     # Check if covariates are present and modify titles and path
     if args['flag_covariates']:
-        args['log'] = f"{args['log']}"
-        args['prefix_regression'] = f"{args['prefix_regression']} - Covariates"
-        output_dir = os.path.join(output_dir, "covariates")
-        os.makedirs(output_dir, exist_ok=True)
+        args['prefix'] += " - Covariates"
+        base_out = os.path.join(base_out, "covariates")
     else:
         args['covariates'] = None
-        output_dir = os.path.join(output_dir, "no_covariates")
-        os.makedirs(output_dir, exist_ok=True)
+        base_out = os.path.join(base_out, "no_covariates")
+    os.makedirs(base_out, exist_ok=True)
 
-    if args['group_regression']:
+    if args.get("group_regression", False):
         group_col = args['group_col']
-
-        # Crea directory principale per il group_col
-        output_dir = os.path.join(output_dir, re.sub(r'[\s\-]+', '_', group_col.strip().lower()))
-        os.makedirs(output_dir, exist_ok=True)
-
-        # Estrai i gruppi unici (senza NaN)
-        unique_groups = df_metadata[group_col].dropna().unique()
-
-        for group_id in sorted(unique_groups):
-            group_id_str = group_value_to_str(group_id)
-
-            output_dir = os.path.join(output_dir, group_id_str)
-            os.makedirs( output_dir, exist_ok=True)
-            args['output_dir'] = output_dir
-
-            # Log file specifico per il gruppo
-            log_name = f'{args["log"]}_{group_col}_{group_id_str}.txt'.lower()
-            sys.stdout = open(os.path.join(output_dir, log_name), "w")
-
-            print(f"\n=== Group by {group_col} - {group_id_str} ===")
-
-            # Filtra i dati per gruppo
-            ids = df_metadata[df_metadata[group_col] == group_id]["ID"]
-            df_meta_cluster = df_metadata[df_metadata["ID"].isin(ids)].reset_index(drop=True)
-            df_cluster = df_masked_raw[df_masked_raw["ID"].isin(ids)].reset_index(drop=True)
-
-            # Esegui la regressione
-            main_regression(df_cluster, df_meta_cluster, args)
+        for group_val in sorted(df_meta[group_col].dropna().unique()):
+            group_str = group_value_to_str(group_val)
+            args['output_dir'] = os.path.join(base_out, group_col.lower(), group_str)
+            os.makedirs(args['output_dir'], exist_ok=True)
+            sys.stdout = open(os.path.join(args['output_dir'], f"{args['log']}_{group_col}_{group_str}.txt"), "w")
+            ids = df_meta[df_meta[group_col] == group_val]['ID']
+            df_group = df_input[df_input['ID'].isin(ids)].reset_index(drop=True)
+            df_meta_group = df_meta[df_meta['ID'].isin(ids)].reset_index(drop=True)
+            regression_pipeline(df_group, df_meta_group, args)
+            sys.stdout.close()
     else:
-        # Modify output directory
-        output_dir = os.path.join(output_dir, 'all')
-        os.makedirs(output_dir, exist_ok=True)
-        args['output_dir'] = output_dir
+        args['output_dir'] = os.path.join(base_out, "all")
+        os.makedirs(args['output_dir'], exist_ok=True)
+        sys.stdout = open(os.path.join(args['output_dir'], args['log']), "w")
+        regression_pipeline(df_input, df_meta, args)
+        sys.stdout.close()
 
-        # Redirect stdout
-        sys.stdout = open(os.path.join(output_dir, args['log']), "w")
-
-        # Run regression
-        main_regression(df_masked_raw, df_metadata, args)
-
-
-
-    # Reset stdout
-    sys.stdout.close()
     sys.stdout = sys.__stdout__
+
+if __name__ == "__main__":
+    main()

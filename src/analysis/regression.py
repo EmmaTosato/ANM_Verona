@@ -14,6 +14,7 @@ from preprocessing.processflat import x_features_return
 from analysis.umap_run import run_umap
 from preprocessing.processflat import x_features_return
 from preprocessing.config import ConfigLoader
+from analysis.utils import threshold_prefix, ensure_dir
 from analysis.plotting import plot_ols_diagnostics, plot_actual_vs_predicted
 
 warnings.filterwarnings("ignore")
@@ -113,8 +114,19 @@ def main():
     print(subject_errors_sorted.to_string(index=False))
 
 
+import argparse
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run regression analysis")
+    parser.add_argument("--config", default="src/parameters/config.json", help="Path to config file")
+    parser.add_argument("--paths", default="src/parameters/paths.json", help="Path to paths file")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    loader = ConfigLoader()
+    cli_args = parse_args()
+    loader = ConfigLoader(cli_args.config, cli_args.paths)
     args, _, _ = loader.load()
 
     # Load configuration and metadata
@@ -122,46 +134,60 @@ if __name__ == "__main__":
     df_metadata = pd.read_csv(args['df_meta'])
 
     # Set output directory
-    output_dir = os.path.join(str(args["path_umap_regression"]), str(args["target_variable"]))
-    os.makedirs(output_dir, exist_ok=True)
+    output_dir = ensure_dir(os.path.join(str(args["path_umap_regression"]), str(args["target_variable"])))
 
     # Check if threshold is set
-    if args.get("threshold") in [0.1, 0.2]:
-        args['log'] = f"log_{args['threshold']}_threshold"
-        args['prefix_regression'] = f"{args['threshold']} Threshold"
-    else:
-        args['log'] = "log_no_threshold"
-        args['prefix_regression'] = "No Threshold"
+    args['prefix_regression'], args['log'] = threshold_prefix(args.get("threshold"))
 
     # Check if covariates are present and modify titles and path
     if args['flag_covariates']:
-        args['prefix'] += " - Covariates"
-        base_out = os.path.join(base_out, "covariates")
+        args['log'] = f"{args['log']}"
+        args['prefix_regression'] = f"{args['prefix_regression']} - Covariates"
+        output_dir = ensure_dir(os.path.join(output_dir, "covariates"))
     else:
         args['covariates'] = None
-        base_out = os.path.join(base_out, "no_covariates")
-    os.makedirs(base_out, exist_ok=True)
-
+        output_dir = ensure_dir(os.path.join(output_dir, "no_covariates"))
     if args.get("group_regression", False):
         group_col = args['group_col']
-        for group_val in sorted(df_meta[group_col].dropna().unique()):
-            group_str = group_value_to_str(group_val)
-            args['output_dir'] = os.path.join(base_out, group_col.lower(), group_str)
-            os.makedirs(args['output_dir'], exist_ok=True)
-            sys.stdout = open(os.path.join(args['output_dir'], f"{args['log']}_{group_col}_{group_str}.txt"), "w")
-            ids = df_meta[df_meta[group_col] == group_val]['ID']
-            df_group = df_input[df_input['ID'].isin(ids)].reset_index(drop=True)
-            df_meta_group = df_meta[df_meta['ID'].isin(ids)].reset_index(drop=True)
-            regression_pipeline(df_group, df_meta_group, args)
-            sys.stdout.close()
-    else:
-        args['output_dir'] = os.path.join(base_out, "all")
-        os.makedirs(args['output_dir'], exist_ok=True)
-        sys.stdout = open(os.path.join(args['output_dir'], args['log']), "w")
-        regression_pipeline(df_input, df_meta, args)
-        sys.stdout.close()
 
+        # Crea directory principale per il group_col
+        output_dir = ensure_dir(os.path.join(output_dir, re.sub(r'[\s\-]+', '_', group_col.strip().lower())))
+
+        # Estrai i gruppi unici (senza NaN)
+        unique_groups = df_metadata[group_col].dropna().unique()
+
+        for group_id in sorted(unique_groups):
+            group_id_str = group_value_to_str(group_id)
+
+            output_dir = ensure_dir(os.path.join(output_dir, group_id_str))
+            args['output_dir'] = output_dir
+
+            # Log file specifico per il gruppo
+            log_name = f'{args["log"]}_{group_col}_{group_id_str}.txt'.lower()
+            sys.stdout = open(os.path.join(output_dir, log_name), "w")
+
+            print(f"\n=== Group by {group_col} - {group_id_str} ===")
+
+            # Filtra i dati per gruppo
+            ids = df_metadata[df_metadata[group_col] == group_id]["ID"]
+            df_meta_cluster = df_metadata[df_metadata["ID"].isin(ids)].reset_index(drop=True)
+            df_cluster = df_masked_raw[df_masked_raw["ID"].isin(ids)].reset_index(drop=True)
+
+            # Esegui la regressione
+            main_regression(df_cluster, df_meta_cluster, args)
+    else:
+        # Modify output directory
+        output_dir = ensure_dir(os.path.join(output_dir, 'all'))
+        args['output_dir'] = output_dir
+
+        # Redirect stdout
+        sys.stdout = open(os.path.join(output_dir, args['log']), "w")
+
+        # Run regression
+        main_regression(df_masked_raw, df_metadata, args)
+        
     sys.stdout = sys.__stdout__
 
-if __name__ == "__main__":
-    main()
+    # Reset stdout
+    sys.stdout.close()
+    sys.stdout = sys.__stdout__

@@ -16,6 +16,9 @@ from preprocessing.loading import load_args_and_data
 from preprocessing.processflat import x_features_return
 from umap_run import run_umap
 from preprocessing.config import ConfigLoader
+from analysis.utils import ensure_dir, threshold_prefix
+import argparse
+
 
 np.random.seed(42)
 
@@ -65,7 +68,9 @@ def evaluate_model(X_train, y_train, X_val, y_val, classifier_name, classifier, 
     except Exception:
         metrics["auc_roc"] = None
 
-    os.makedirs(results_dir, exist_ok=True)
+    # Save metrics and confusion matrix
+    ensure_dir(results_dir)
+    
     path_json = os.path.join(results_dir, f"val_metrics_{classifier_name}_seed{seed}_fold{fold+1}.json")
     with open(path_json, "w") as f:
         json.dump(metrics, f, indent=2)
@@ -116,8 +121,20 @@ def classification_pipeline(df_input, df_meta, split_path, args, classification)
 
     return pd.DataFrame(all_results)
 
+# ----------------------
+# Script entry point
+# -----------------------
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run classification pipeline")
+    parser.add_argument("--config", default="src/parameters/config.json", help="Path to config file")
+    parser.add_argument("--paths", default="src/parameters/paths.json", help="Path to paths file")
+    return parser.parse_args()
+
+
 def main():
-    loader = ConfigLoader()
+    cli_args = parse_args()
+    loader = ConfigLoader(cli_args.config, cli_args.paths)
+
     args, config, paths = loader.load()
 
 

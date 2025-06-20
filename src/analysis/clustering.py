@@ -14,6 +14,8 @@ from preprocessing.processflat import x_features_return
 from analysis.umap_run import run_umap
 from analysis.clustering_evaluation import evaluate_kmeans, evaluate_gmm, evaluate_hdbscan, evaluate_consensus
 from preprocessing.config import ConfigLoader
+from analysis.utils import threshold_prefix, ensure_dir
+import argparse
 import json
 import warnings
 warnings.filterwarnings("ignore")
@@ -64,15 +66,41 @@ def plot_clusters_vs_groups(x_umap, labels_dict, group_column, save_path, title_
         plt.show()
     plt.close(fig)
 
-def clustering_pipeline(df_input, df_meta, args):
-    df_merged, x = x_features_return(df_input, df_meta)
-    x_umap = run_umap(x, plot_flag=args['plot_cluster'], save_path=args['path_umap'], title=args['prefix'])
+# ---------------------------
+# Main function
+# ---------------------------
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run clustering analysis")
+    parser.add_argument("--config", default="src/parameters/config.json", help="Path to config file")
+    parser.add_argument("--paths", default="src/parameters/paths.json", help="Path to paths file")
+    return parser.parse_args()
 
-    if args.get("do_evaluation"):
-        clean_title = re.sub(r'[\s\-]+', '_', args['prefix'].strip().lower())
-        evaluate_kmeans(x_umap, save_path=args['path_opt_cluster'], prefix=clean_title, plot_flag=args['plot_cluster'])
-        evaluate_gmm(x_umap, save_path=args['path_opt_cluster'], prefix=clean_title, plot_flag=args['plot_cluster'])
-        evaluate_consensus(x_umap, save_path=args['path_opt_cluster'], prefix=clean_title, plot_flag=args['plot_cluster'])
+
+def main_clustering(df_masked, df_meta, params):
+    # Check if threshold is set
+    params['prefix_cluster'], _ = threshold_prefix(params.get("threshold"))
+
+    # Variable definition
+    title_prefix = params['prefix_cluster']
+    path_cluster = params['path_cluster']
+    path_opt_cluster = params['path_opt_cluster']
+    plot_clustering = params['plot_cluster']
+    do_evaluation = params['do_evaluation']
+
+
+    # Merge voxel and metadata
+    df_merged, x = x_features_return(df_masked, df_meta)
+
+    # Reduce dimensionality with UMAP
+    x_umap = run_umap(x, plot_flag=plot_clustering, save_path=params['path_umap'], title=title_prefix)
+
+    # Evaluation of clustering
+    if do_evaluation:
+        print("Evaluating clustering algorithms...")
+        clean_title = re.sub(r'[\s\-]+', '_', title_prefix.strip().lower())
+        evaluate_kmeans(x_umap, save_path=path_opt_cluster, prefix=clean_title, plot_flag=plot_clustering)
+        evaluate_gmm(x_umap, save_path=path_opt_cluster, prefix=clean_title, plot_flag=plot_clustering)
+        evaluate_consensus(x_umap, save_path=path_opt_cluster, prefix=clean_title, plot_flag=plot_clustering)
         evaluate_hdbscan(x_umap)
 
     labels_dict = run_clustering(x_umap)
@@ -109,7 +137,8 @@ def main():
     clustering_pipeline(df_input, df_meta, args)
 
 if __name__ == "__main__":
-    loader = ConfigLoader()
+    cli_args = parse_args()
+    loader = ConfigLoader(cli_args.config, cli_args.paths)
     args, _, _ = loader.load()
 
     df_masked_raw = pd.read_pickle(args['df_path'])
@@ -117,5 +146,3 @@ if __name__ == "__main__":
 
     # Run UMAP and clustering
     umap_summary = main_clustering(df_masked_raw, df_metadata, args )
-
-

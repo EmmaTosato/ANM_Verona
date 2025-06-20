@@ -28,6 +28,11 @@ def load_args_resolved(config_path="src/parameters/config.json", paths_path="src
 
     return args
 
+def load_all(config_path="src/parameters/config.json", paths_path="src/parameters/paths.json"):
+    args = load_args_resolved(config_path, paths_path)
+    df = pd.read_pickle(args["df_path"])
+    meta = pd.read_csv(args["df_meta"])
+    return args, df, meta
 
 def resolve_data_path(dataset_type: str, threshold, paths: dict):
     flat_paths = {}

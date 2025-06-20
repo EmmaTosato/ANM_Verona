@@ -1,4 +1,4 @@
-# classification.py
+# classification.py (refactored)
 
 import os
 import json
@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, f1_score,
-    roc_auc_score, confusion_matrix)
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
+
+from preprocessing.loading import load_args_and_data
 from preprocessing.processflat import x_features_return
 from umap_run import run_umap
 from preprocessing.config import ConfigLoader
@@ -20,9 +20,8 @@ from analysis.utils import ensure_dir, threshold_prefix
 import argparse
 
 
-# ---------------------------------------------------------------
-# Return the correct split file path for the given pair of groups
-# ---------------------------------------------------------------
+np.random.seed(42)
+
 def resolve_split_csv_path(split_dir, group1, group2):
     fname1 = f"{group1}_{group2}_splitted.csv"
     fname2 = f"{group2}_{group1}_splitted.csv"
@@ -37,36 +36,19 @@ def resolve_split_csv_path(split_dir, group1, group2):
     else:
         raise FileNotFoundError(f"No split CSV found for {group1}, {group2} in {split_dir}")
 
-# ---------------------------------------------------------------
-# Load dataframe for classification, metadata and split
-# ---------------------------------------------------------------
-def load_data(paths, classification, args):
-    df_key = classification["df"]
-    df_gm = pd.read_pickle(args[df_key])
-    df_meta = pd.read_csv(paths["df_meta"])
-    split_path = resolve_split_csv_path(paths["split_dir"], classification["group1"], classification["group2"])
+def load_split_and_prepare(df_input, df_meta, split_path, group1, group2):
     df_split = pd.read_csv(split_path)
-
-    return df_gm, df_meta, df_split
-
-# ---------------------------------------------------------------
-# Filter and align X, y, split arrays from merged dataframe
-# ---------------------------------------------------------------
-def prepare_data(df_gm, df_meta, df_split, group1, group2):
-    df_merged, X = x_features_return(df_gm, df_meta)
+    df_merged, X = x_features_return(df_input, df_meta)
     df_merged = df_merged.merge(df_split[["ID", "split"]], on="ID", how="inner")
     df_pair = df_merged[df_merged["Group"].isin([group1, group2])].copy()
     X_pair = X.loc[df_pair.index].values
     y_pair = df_pair["Group"].values
     splits = df_pair["split"].values
-    return X_pair, y_pair, splits, df_pair["ID"].values, df_pair
+    return X_pair, y_pair, splits, df_pair
 
-# ---------------------------------------------------------------
-# Train a model on a fold and return metrics
-# ---------------------------------------------------------------
 def evaluate_model(X_train, y_train, X_val, y_val, classifier_name, classifier, le, results_dir, seed, fold):
-    X_umap_train = run_umap(X_train, plot_flag=False, title=None)
-    X_umap_val = run_umap(X_val, plot_flag=False, title=None)
+    X_umap_train = run_umap(X_train, plot_flag=False)
+    X_umap_val = run_umap(X_val, plot_flag=False)
 
     classifier.fit(X_umap_train, y_train)
     y_pred = classifier.predict(X_umap_val)
@@ -88,6 +70,7 @@ def evaluate_model(X_train, y_train, X_val, y_val, classifier_name, classifier, 
 
     # Save metrics and confusion matrix
     ensure_dir(results_dir)
+    
     path_json = os.path.join(results_dir, f"val_metrics_{classifier_name}_seed{seed}_fold{fold+1}.json")
     with open(path_json, "w") as f:
         json.dump(metrics, f, indent=2)
@@ -105,40 +88,31 @@ def evaluate_model(X_train, y_train, X_val, y_val, classifier_name, classifier, 
 
     return metrics
 
-# ---------------------------------------------------------------
-# Main routine: fixed train/test split + internal CV on train set
-# ---------------------------------------------------------------
-def run_umap_classification(args, classification, paths):
-    df_gm, df_meta, df_split = load_data(paths, classification, args)
+def classification_pipeline(df_input, df_meta, split_path, args, classification):
     group1, group2 = classification["group1"], classification["group2"]
     seeds = classification["seeds"]
     n_folds = classification.get("n_folds", 5)
-    results_dir = paths["path_umap_classification"]
+    results_dir = args["path_umap_classification"]
 
     classifiers = {
         "SVM": SVC(kernel='rbf', probability=True),
         "RandomForest": RandomForestClassifier(n_estimators=100)
     }
 
-    all_results = []
-
-    # Prepare data
-    X_all, y_all, split_array, _, df_pair = prepare_data(df_gm, df_meta, df_split, group1, group2)
+    X_all, y_all, split_array, df_pair = load_split_and_prepare(df_input, df_meta, split_path, group1, group2)
     le = LabelEncoder()
     y_encoded = le.fit_transform(y_all)
 
-    # Split by predefined split column: test = split==0
     test_mask = (split_array == 0)
     train_mask = ~test_mask
     X_train_full, y_train_full = X_all[train_mask], y_encoded[train_mask]
 
+    all_results = []
     for seed in seeds:
         skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed)
-
         for fold, (train_idx, val_idx) in enumerate(skf.split(X_train_full, y_train_full)):
             X_train, y_train = X_train_full[train_idx], y_train_full[train_idx]
             X_val, y_val = X_train_full[val_idx], y_train_full[val_idx]
-
             for name, clf in classifiers.items():
                 metrics = evaluate_model(X_train, y_train, X_val, y_val,
                                          classifier_name=name, classifier=clf, le=le,
@@ -160,14 +134,25 @@ def parse_args():
 def main():
     cli_args = parse_args()
     loader = ConfigLoader(cli_args.config, cli_args.paths)
+
     args, config, paths = loader.load()
 
-    # Extract classification block
+
+    args, config, paths = load_args_resolved()
     classification = config["classification"]
 
-    # Run classification
-    results_df = run_umap_classification(args, classification, paths)
-    print(results_df)
+    df_input = pd.read_pickle(args["df_path"])
+    df_meta = pd.read_csv(args["df_meta"])
+
+    split_path = os.path.join(paths["split_dir"], f"{classification['group1']}_{classification['group2']}_splitted.csv")
+    if not os.path.exists(split_path):
+        split_path = os.path.join(paths["split_dir"], f"{classification['group2']}_{classification['group1']}_splitted.csv")
+
+    if not os.path.exists(split_path):
+        raise FileNotFoundError("Split file not found for selected group pair.")
+
+    df_results = classification_pipeline(df_input, df_meta, split_path, args, classification)
+    print(df_results)
 
 if __name__ == "__main__":
     main()

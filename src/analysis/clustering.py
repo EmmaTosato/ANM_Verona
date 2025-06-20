@@ -10,7 +10,9 @@ from sklearn.cluster import KMeans
 from analysis.umap_run import run_umap
 from preprocessing.processflat import x_features_return
 from analysis.clustering_evaluation import evaluate_kmeans, evaluate_gmm, evaluate_hdbscan, evaluate_consensus
-from preprocessing.loading import load_args_resolved
+from preprocessing.config import ConfigLoader
+from analysis.utils import threshold_prefix, ensure_dir
+import argparse
 import json
 import warnings
 warnings.filterwarnings("ignore")
@@ -105,12 +107,16 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column, save_path, 
 # ---------------------------
 # Main function
 # ---------------------------
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run clustering analysis")
+    parser.add_argument("--config", default="src/parameters/config.json", help="Path to config file")
+    parser.add_argument("--paths", default="src/parameters/paths.json", help="Path to paths file")
+    return parser.parse_args()
+
+
 def main_clustering(df_masked, df_meta, params):
     # Check if threshold is set
-    if args.get("threshold") in [0.1, 0.2]:
-        args['prefix_cluster'] = f"{args['threshold']} Threshold"
-    else:
-        args['prefix_cluster'] = "No Threshold"
+    params['prefix_cluster'], _ = threshold_prefix(params.get("threshold"))
 
     # Variable definition
     title_prefix = params['prefix_cluster']
@@ -182,13 +188,16 @@ def main_clustering(df_masked, df_meta, params):
 
 
 if __name__ == "__main__":
-    args = load_args_resolved()
+    cli_args = parse_args()
+    loader = ConfigLoader(cli_args.config, cli_args.paths)
+    args, _, _ = loader.load()
 
     df_masked_raw = pd.read_pickle(args['df_path'])
     df_metadata = pd.read_csv(args['df_meta'])
 
     # Run UMAP and clustering
     umap_summary = main_clustering(df_masked_raw, df_metadata, args )
+
 
 
 

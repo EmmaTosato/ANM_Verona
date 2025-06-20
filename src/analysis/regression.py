@@ -11,8 +11,9 @@ import warnings
 warnings.filterwarnings("ignore")
 import sys
 from analysis.umap_run import run_umap
-from preprocessing.processflat import x_features_return, load_args_resolved
-from preprocessing.loading import load_args_resolved
+from preprocessing.processflat import x_features_return
+from preprocessing.config import ConfigLoader
+from analysis.utils import threshold_prefix, ensure_dir
 from analysis.plotting import plot_ols_diagnostics, plot_actual_vs_predicted
 
 # ------------------------------------------------------------
@@ -182,42 +183,45 @@ def main_regression(df_masked, df_meta, params):
     print(subject_errors_sorted.to_string(index=False))
 
 
+import argparse
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run regression analysis")
+    parser.add_argument("--config", default="src/parameters/config.json", help="Path to config file")
+    parser.add_argument("--paths", default="src/parameters/paths.json", help="Path to paths file")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    args = load_args_resolved()
+    cli_args = parse_args()
+    loader = ConfigLoader(cli_args.config, cli_args.paths)
+    args, _, _ = loader.load()
 
     # Load configuration and metadata
     df_masked_raw = pd.read_pickle(args['df_path'])
     df_metadata = pd.read_csv(args['df_meta'])
 
     # Set output directory
-    output_dir = os.path.join(str(args["path_umap_regression"]), str(args["target_variable"]))
-    os.makedirs(output_dir, exist_ok=True)
+    output_dir = ensure_dir(os.path.join(str(args["path_umap_regression"]), str(args["target_variable"])))
 
     # Check if threshold is set
-    if args.get("threshold") in [0.1, 0.2]:
-        args['log'] = f"log_{args['threshold']}_threshold"
-        args['prefix_regression'] = f"{args['threshold']} Threshold"
-    else:
-        args['log'] = "log_no_threshold"
-        args['prefix_regression'] = "No Threshold"
+    args['prefix_regression'], args['log'] = threshold_prefix(args.get("threshold"))
 
     # Check if covariates are present and modify titles and path
     if args['flag_covariates']:
         args['log'] = f"{args['log']}"
         args['prefix_regression'] = f"{args['prefix_regression']} - Covariates"
-        output_dir = os.path.join(output_dir, "covariates")
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir = ensure_dir(os.path.join(output_dir, "covariates"))
     else:
         args['covariates'] = None
-        output_dir = os.path.join(output_dir, "no_covariates")
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir = ensure_dir(os.path.join(output_dir, "no_covariates"))
 
     if args['group_regression']:
         group_col = args['group_col']
 
         # Crea directory principale per il group_col
-        output_dir = os.path.join(output_dir, re.sub(r'[\s\-]+', '_', group_col.strip().lower()))
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir = ensure_dir(os.path.join(output_dir, re.sub(r'[\s\-]+', '_', group_col.strip().lower())))
 
         # Estrai i gruppi unici (senza NaN)
         unique_groups = df_metadata[group_col].dropna().unique()
@@ -225,8 +229,7 @@ if __name__ == "__main__":
         for group_id in sorted(unique_groups):
             group_id_str = group_value_to_str(group_id)
 
-            output_dir = os.path.join(output_dir, group_id_str)
-            os.makedirs( output_dir, exist_ok=True)
+            output_dir = ensure_dir(os.path.join(output_dir, group_id_str))
             args['output_dir'] = output_dir
 
             # Log file specifico per il gruppo
@@ -244,8 +247,7 @@ if __name__ == "__main__":
             main_regression(df_cluster, df_meta_cluster, args)
     else:
         # Modify output directory
-        output_dir = os.path.join(output_dir, 'all')
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir = ensure_dir(os.path.join(output_dir, 'all'))
         args['output_dir'] = output_dir
 
         # Redirect stdout

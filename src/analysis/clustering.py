@@ -8,7 +8,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 import hdbscan
-
 from preprocessing.loading import load_args_and_data
 from preprocessing.processflat import x_features_return
 from analysis.umap_run import run_umap
@@ -76,7 +75,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main_clustering(df_masked, df_meta, params):
+def clustering_pipeline(df_masked, df_meta, params):
     # Check if threshold is set
     params['prefix_cluster'], _ = threshold_prefix(params.get("threshold"))
 
@@ -145,4 +144,4 @@ if __name__ == "__main__":
     df_metadata = pd.read_csv(args['df_meta'])
 
     # Run UMAP and clustering
-    umap_summary = main_clustering(df_masked_raw, df_metadata, args )
+    umap_summary = clustering_pipeline(df_masked_raw, df_metadata, args)

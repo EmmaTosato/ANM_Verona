@@ -85,14 +85,6 @@ def regression_pipeline(df_input, df_meta, args):
     print("\nSUBJECTS SORTED BY RMSE")
     print(df_sorted.to_string(index=False))
 
-def main():
-    args, df_input, df_meta = load_args_and_data()
-    base_out = os.path.join(args["path_umap_regression"], args["target_variable"])
-    os.makedirs(base_out, exist_ok=True)
-
-    args['log'] = f"log_{args['threshold']}_threshold" if args['threshold'] in [0.1, 0.2] else "log_no_threshold"
-    args['prefix'] = f"{args['threshold']} Threshold" if args['threshold'] in [0.1, 0.2] else "No Threshold"
-
     print("\n\n" + "-" * 80)
     print("SHUFFLING REGRESSION")
     print("-" * 80)
@@ -112,6 +104,15 @@ def main():
     print("SUBJECTS RANKED BY RMSE (BEST TO WORST)")
     print("-" * 80)
     print(subject_errors_sorted.to_string(index=False))
+
+def main():
+    args, df_input, df_meta = load_args_and_data()
+    base_out = os.path.join(args["path_umap_regression"], args["target_variable"])
+    os.makedirs(base_out, exist_ok=True)
+
+    args['log'] = f"log_{args['threshold']}_threshold" if args['threshold'] in [0.1, 0.2] else "log_no_threshold"
+    args['prefix'] = f"{args['threshold']} Threshold" if args['threshold'] in [0.1, 0.2] else "No Threshold"
+
 
 
 import argparse

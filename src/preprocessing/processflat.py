@@ -1,4 +1,4 @@
-# processing_flat.py
+# processflat.py
 import pandas as pd
 import json
 import nibabel as nib
@@ -64,6 +64,31 @@ def summarize_voxel_data(df_masked, threshold=None):
         'Nonzero Std': round(nonzero_voxels.std(), 3),
     })
     return summary
+
+# ---------------------------
+# Merge voxel data with metadata
+# ---------------------------
+def x_features_return(df_voxel, df_labels):
+    # Meta data columns
+    meta_columns = list(df_labels.columns)
+
+    # Merging datasets
+    dataframe_merge = pd.merge(df_voxel, df_labels, on='ID', how='left', validate='one_to_one')
+
+    # Ordering
+    ordered_cols = meta_columns + [col for col in dataframe_merge.columns if col not in meta_columns]
+    dataframe_merge = dataframe_merge[ordered_cols]
+
+    # Features data
+    x = dataframe_merge.drop(columns=meta_columns)
+
+    print("\n-------------------- Dataset Info --------------------")
+    print(f"{'Meta columns (Labels and Covariates):':40s} {len(meta_columns):>5d}")
+    print(f"{'Feature matrix shape (X):':40s} {x.shape}")
+    print(f"{'Complete dataframe shape after merge:':40s} {dataframe_merge.shape}")
+    print("-------------------------------------------------------\n")
+
+    return dataframe_merge, x
 
 
 def main_processing_flat(df, df_meta, gm_mask_path, harvard_mask_path, do_eda=False):
@@ -139,3 +164,4 @@ if __name__ == "__main__":
     # Save EDA summary
     df_summary.to_csv(os.path.join(config['dir_dataframe'], "meta/df_summary.csv"))
     print("Done.")
+

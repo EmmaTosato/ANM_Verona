@@ -7,8 +7,10 @@ import matplotlib.pyplot as plt
 import hdbscan
 import numpy as np
 from sklearn.cluster import KMeans
-from analysis.dimensionality_reduction import x_features_return, run_umap
+from analysis.umap_run import run_umap
+from preprocessing.processflat import x_features_return
 from analysis.clustering_evaluation import evaluate_kmeans, evaluate_gmm, evaluate_hdbscan, evaluate_consensus
+from preprocessing.loading import load_args_resolved
 import json
 import warnings
 warnings.filterwarnings("ignore")
@@ -104,6 +106,11 @@ def plot_clusters_vs_groups(x_umap, labels_dictionary, group_column, save_path, 
 # Main function
 # ---------------------------
 def main_clustering(df_masked, df_meta, params):
+    # Check if threshold is set
+    if args.get("threshold") in [0.1, 0.2]:
+        args['prefix_cluster'] = f"{args['threshold']} Threshold"
+    else:
+        args['prefix_cluster'] = "No Threshold"
 
     # Variable definition
     title_prefix = params['prefix_cluster']
@@ -111,6 +118,7 @@ def main_clustering(df_masked, df_meta, params):
     path_opt_cluster = params['path_opt_cluster']
     plot_clustering = params['plot_cluster']
     do_evaluation = params['do_evaluation']
+
 
     # Merge voxel and metadata
     df_merged, x = x_features_return(df_masked, df_meta)
@@ -174,26 +182,10 @@ def main_clustering(df_masked, df_meta, params):
 
 
 if __name__ == "__main__":
-    # Load json
-    print("\nLoading config and metadata...")
-    with open("src/parameters/paths.json", "r") as f:
-        paths = json.load(f)
+    args = load_args_resolved()
 
-    with open("src/parameters/config.json", "r") as f:
-        config = json.load(f)
-
-    args = {**paths, **config["data"], **config["fixed"], **config["plotting"], **config["experiment"]}
-
-
-    # Load configuration and metadata
-    df_masked_raw = pd.read_pickle(args['df_masked'])
+    df_masked_raw = pd.read_pickle(args['df_path'])
     df_metadata = pd.read_csv(args['df_meta'])
-
-    # Check if threshold is set
-    if args.get("threshold") in [0.1, 0.2]:
-        args['prefix_cluster'] = f"{args['threshold']} Threshold"
-    else:
-        args['prefix_cluster'] = "No Threshold"
 
     # Run UMAP and clustering
     umap_summary = main_clustering(df_masked_raw, df_metadata, args )

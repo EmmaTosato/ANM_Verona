@@ -9,6 +9,52 @@ import json
 import warnings
 warnings.filterwarnings("ignore")
 
+def load_args_resolved(config_path="src/parameters/config.json", paths_path="src/parameters/paths.json"):
+    with open(config_path) as f:
+        config = json.load(f)
+    with open(paths_path) as f:
+        paths = json.load(f)
+
+    args = {}
+    for section in config.values():
+        if isinstance(section, dict):
+            args.update(section)
+
+    args["df_path"] = resolve_data_path(
+        dataset_type=args["dataset_type"],
+        threshold=args["threshold"],
+        paths=paths
+    )
+
+    return args
+
+
+def resolve_data_path(dataset_type: str, threshold, paths: dict):
+    flat_paths = {}
+    for section in paths.values():
+        flat_paths.update(section)
+
+    if dataset_type == "fdc":
+        if not threshold:
+            return flat_paths["df_masked"]
+        elif threshold == 0.2:
+            return flat_paths["df_masked_02"]
+        else:
+            raise ValueError(f"No FDC path defined for threshold={threshold}")
+
+    elif dataset_type == "networks":
+        if not threshold:
+            return flat_paths["net_noThr"]
+        elif threshold == 0.2:
+            return flat_paths["net_thr02"]
+        elif threshold == 0.1:
+            return flat_paths["net_thr01"]
+        else:
+            raise ValueError(f"No network path defined for threshold={threshold}")
+
+    else:
+        raise ValueError(f"Unknown dataset_type: {dataset_type}")
+
 def load_fdc_maps(params):
     # All nii.gz files in the directory
     dir_fc_maps = params['dir_FCmaps']
@@ -42,7 +88,6 @@ def load_metadata(cognitive_dataset):
     df_meta = df_meta[df_meta['ID'] != '4_S_5003'].reset_index(drop=True)
 
     return df_meta
-
 
 
 def gmm_label_cdr(df_meta):

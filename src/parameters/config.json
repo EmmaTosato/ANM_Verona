@@ -1,28 +1,35 @@
 {
   "data": {
-      "df_masked": "data/dataframes/fdc/df_gm.pkl",
-      "threshold": false
+    "df": "data/dataframes/fdc/df_gm.pkl",
+    "threshold": false
   },
 
-  "fixed": {
-      "output_dir": "",
-      "covariates": ["Sex", "Age", "Education"],
-      "y_log_transform": false,
-      "color_by_group": true,
-      "group_name": "Group"
+  "fixed_parameters": {
+    "output_dir": "",
+    "covariates": ["Sex", "Age", "Education"],
+    "y_log_transform": false,
+    "color_by_group": true,
+    "group_name": "Group"
   },
 
   "plotting": {
-      "plot_cluster": true,
-      "do_evaluation": false,
-      "plot_regression": true
+    "plot_cluster": true,
+    "do_evaluation": false,
+    "plot_regression": true
   },
 
-  "experiment": {
+  "regression": {
     "target_variable": "MMSE",
     "flag_covariates": true,
     "group_regression": false,
     "group_col": "Group"
-  }
+  },
 
+  "classification": {
+    "df": "df_masked",
+    "group1": "ADNI",
+    "group2": "PSP",
+    "seeds": [42, 43, 44],
+    "n_folds": 5
+  }
 }

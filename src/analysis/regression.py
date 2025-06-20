@@ -10,9 +10,10 @@ import os
 import warnings
 warnings.filterwarnings("ignore")
 import sys
-from analysis.dimensionality_reduction import x_features_return, run_umap
+from analysis.umap_run import run_umap
+from preprocessing.processflat import x_features_return, load_args_resolved
+from preprocessing.loading import load_args_resolved
 from analysis.plotting import plot_ols_diagnostics, plot_actual_vs_predicted
-
 
 # ------------------------------------------------------------
 # Utils
@@ -182,17 +183,10 @@ def main_regression(df_masked, df_meta, params):
 
 
 if __name__ == "__main__":
-    # Load json
-    with open("src/parameters/paths.json", "r") as f:
-        paths = json.load(f)
-
-    with open("src/parameters/config.json", "r") as f:
-        config = json.load(f)
-
-    args = {**paths, **config["data"], **config["fixed"], **config["plotting"], **config["experiment"]}
+    args = load_args_resolved()
 
     # Load configuration and metadata
-    df_masked_raw = pd.read_pickle(args['df_masked'])
+    df_masked_raw = pd.read_pickle(args['df_path'])
     df_metadata = pd.read_csv(args['df_meta'])
 
     # Set output directory

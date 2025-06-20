@@ -7,7 +7,7 @@
 # - Remove --augmented if data is not augmented
 # - Remove --normalization if you don't want MinMax scaling
 
-python preprocessing.py \
+python processed3d.py \
     --input_dir "/Users/emmatosato/Documents/PhD/ANM_Verona/data/FCmaps/" \
     --output_dir "/Users/emmatosato/Documents/PhD/ANM_Verona/data/FCmaps_processed" \
     --mask_path "/Users/emmatosato/Documents/PhD/ANM_Verona/utils/masks/GM_mask.nii" \

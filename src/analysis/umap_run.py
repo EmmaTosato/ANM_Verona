@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import re
@@ -9,29 +8,6 @@ import umap
 warnings.filterwarnings("ignore")
 
 np.random.seed(42)
-
-# ---------------------------
-# Merge voxel data with metadata
-# ---------------------------
-def x_features_return(df_voxel, df_labels):
-    # Meta data columns
-    meta_columns = list(df_labels.columns)
-
-    # Merging datasets
-    dataframe_merge = pd.merge(df_voxel, df_labels, on='ID', how='left', validate='one_to_one')
-
-    # Ordering
-    ordered_cols = meta_columns + [col for col in dataframe_merge.columns if col not in meta_columns]
-    dataframe_merge = dataframe_merge[ordered_cols]
-
-    # Features data
-    x = dataframe_merge.drop(columns=meta_columns)
-
-    print("Dataframe shape after merge:", dataframe_merge.shape)
-    print("Meta columns:", len(meta_columns))
-    print("Feature matrix shape:", x.shape, "\n")
-
-    return dataframe_merge, x
 
 # --------------------------------------
 # Run UMAP and optionally save/show plot

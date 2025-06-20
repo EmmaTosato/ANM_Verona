@@ -10,7 +10,7 @@ from sklearn.cluster import KMeans
 from analysis.umap_run import run_umap
 from preprocessing.processflat import x_features_return
 from analysis.clustering_evaluation import evaluate_kmeans, evaluate_gmm, evaluate_hdbscan, evaluate_consensus
-from preprocessing.loading import load_args_resolved
+from preprocessing.config import ConfigLoader
 import json
 import warnings
 warnings.filterwarnings("ignore")
@@ -182,7 +182,8 @@ def main_clustering(df_masked, df_meta, params):
 
 
 if __name__ == "__main__":
-    args = load_args_resolved()
+    loader = ConfigLoader()
+    args, _, _ = loader.load()
 
     df_masked_raw = pd.read_pickle(args['df_path'])
     df_metadata = pd.read_csv(args['df_meta'])

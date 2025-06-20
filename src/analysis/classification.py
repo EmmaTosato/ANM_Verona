@@ -15,7 +15,7 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from preprocessing.processflat import x_features_return
 from umap_run import run_umap
-from preprocessing.loading import load_args_resolved
+from preprocessing.config import ConfigLoader
 
 
 # ---------------------------------------------------------------
@@ -149,8 +149,8 @@ def run_umap_classification(args, classification, paths):
 # Script entry point
 # -----------------------
 def main():
-    # Load args, config, and paths
-    args, config, paths = load_args_resolved()
+    loader = ConfigLoader()
+    args, config, paths = loader.load()
 
     # Extract classification block
     classification = config["classification"]

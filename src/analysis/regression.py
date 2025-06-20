@@ -11,8 +11,8 @@ import warnings
 warnings.filterwarnings("ignore")
 import sys
 from analysis.umap_run import run_umap
-from preprocessing.processflat import x_features_return, load_args_resolved
-from preprocessing.loading import load_args_resolved
+from preprocessing.processflat import x_features_return
+from preprocessing.config import ConfigLoader
 from analysis.plotting import plot_ols_diagnostics, plot_actual_vs_predicted
 
 # ------------------------------------------------------------
@@ -183,7 +183,8 @@ def main_regression(df_masked, df_meta, params):
 
 
 if __name__ == "__main__":
-    args = load_args_resolved()
+    loader = ConfigLoader()
+    args, _, _ = loader.load()
 
     # Load configuration and metadata
     df_masked_raw = pd.read_pickle(args['df_path'])

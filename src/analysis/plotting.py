@@ -130,3 +130,81 @@ def plot_actual_vs_predicted(target, predictions, title, save_path=None, plot_fl
         plt.show()
 
     plt.close()
+
+def plot_clusters_vs_groups(x_umap, labels_dict, group_column, save_path, title_prefix, margin=2.0, plot_flag=True, colors_gmm=False):
+    n = len(labels_dict)
+    fig, axes = plt.subplots(n, 2, figsize=(12, 6 * n))
+    if n == 1:
+        axes = [axes]
+    x1, x2 = x_umap[:, 0], x_umap[:, 1]
+    min_val, max_val = min(x1.min(), x2.min()) - margin, max(x1.max(), x2.max()) + margin
+
+    left_colors = ['#74c476', '#f44f39', '#7BD3EA', '#fd8d3c', '#37659e','#fbbabd', '#ffdb24', '#413d7b', '#9dd569', '#e84a9b','#056c39', '#6788ee']
+    right_colors = sns.color_palette("Set2")[2:] if colors_gmm else sns.color_palette("Set2")
+
+    for i, (name, labels) in enumerate(labels_dict.items()):
+        df_plot = pd.DataFrame({'X1': x1, 'X2': x2, 'cluster': labels, 'label': group_column}).dropna(subset=['label'])
+        sns.scatterplot(data=df_plot, x='X1', y='X2', hue='cluster', palette=left_colors, s=50, ax=axes[i][0])
+        sns.scatterplot(data=df_plot, x='X1', y='X2', hue='label', palette=right_colors, s=50, ax=axes[i][1])
+
+        axes[i][0].set_title(name)
+        axes[i][1].set_title(f"{name} - Labeling according to {group_column.name}")
+        for ax in axes[i]:
+            ax.set_xlim(min_val, max_val)
+            ax.set_ylim(min_val, max_val)
+
+    fig.suptitle("Clustering Results", fontsize=22, fontweight='bold')
+    fig.text(0.5, 0.92, title_prefix, fontsize=16, ha='center')
+
+    if save_path:
+        fname = re.sub(r'\s+', '_', title_prefix.strip().lower()) + "_clustering.png"
+        fig.savefig(os.path.join(save_path, fname), dpi=300, bbox_inches='tight')
+    if plot_flag:
+        plt.show()
+    plt.close(fig)
+
+# plotting.py
+import os
+import re
+import matplotlib.pyplot as plt
+
+def plot_umap_embedding(x_umap, title=None, save_path=None, plot_flag=True, dot_color="#d74c4c"):
+    """
+    Plots 2D UMAP embedding with optional save and display.
+    """
+    plt.figure(figsize=(6, 4))
+
+    plt.scatter(
+        x_umap[:, 0], x_umap[:, 1],
+        s=50,
+        alpha=0.9,
+        color=dot_color,
+        edgecolor='black',
+        linewidth=0.5
+    )
+
+    plt.title(f'UMAP Embedding - {title}', fontsize=14, fontweight='bold')
+    plt.xlabel("UMAP 1", fontsize=12, fontweight='bold')
+    plt.ylabel("UMAP 2", fontsize=12, fontweight='bold')
+
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_linewidth(1)
+    ax.spines['left'].set_linewidth(1)
+    ax.spines['bottom'].set_edgecolor('black')
+    ax.spines['left'].set_edgecolor('black')
+
+    plt.grid(False)
+    plt.xticks([])
+    plt.yticks([])
+
+    if save_path:
+        clean_title = re.sub(r'[\s\-]+', '_', title.strip().lower())
+        save_file = os.path.join(save_path, f"{clean_title}_embedding.png")
+        plt.savefig(save_file, dpi=300)
+
+    if plot_flag:
+        plt.show()
+
+    plt.close()

@@ -1,6 +1,6 @@
 {
   "data": {
-    "df": "data/dataframes/fdc/df_gm.pkl",
+    "dataset_type": "fdc",
     "threshold": false
   },
 
@@ -26,7 +26,6 @@
   },
 
   "classification": {
-    "df": "df_masked",
     "group1": "ADNI",
     "group2": "PSP",
     "seeds": [42, 43, 44],

@@ -1,20 +1,17 @@
-# classification.py (refactored)
+# classification.py
 
 import os
-import json
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
-
-from preprocessing.loading import load_args_and_data
+from preprocessing.loading import ConfigLoader
 from preprocessing.processflat import x_features_return
-from analysis.umap_run import run_umap
+from analysis.utils import run_umap, log_to_file, reset_stdout
 
 np.random.seed(42)
 
@@ -42,9 +39,9 @@ def load_split_and_prepare(df_input, df_meta, split_path, group1, group2):
     splits = df_pair["split"].values
     return X_pair, y_pair, splits, df_pair
 
-def evaluate_model(X_train, y_train, X_val, y_val, classifier_name, classifier, le, results_dir, seed, fold):
-    X_umap_train = run_umap(X_train, plot_flag=False)
-    X_umap_val = run_umap(X_val, plot_flag=False)
+def evaluate_model(X_train, y_train, X_val, y_val, classifier_name, classifier, le, seed_dir, seed):
+    X_umap_train = run_umap(X_train)
+    X_umap_val = run_umap(X_val)
 
     classifier.fit(X_umap_train, y_train)
     y_pred = classifier.predict(X_umap_val)
@@ -52,7 +49,6 @@ def evaluate_model(X_train, y_train, X_val, y_val, classifier_name, classifier, 
     metrics = {
         "model": classifier_name,
         "seed": seed,
-        "fold": fold + 1,
         "accuracy": accuracy_score(y_val, y_pred),
         "precision": precision_score(y_val, y_pred, average="macro"),
         "recall": recall_score(y_val, y_pred, average="macro"),
@@ -64,28 +60,21 @@ def evaluate_model(X_train, y_train, X_val, y_val, classifier_name, classifier, 
     except Exception:
         metrics["auc_roc"] = None
 
-    os.makedirs(results_dir, exist_ok=True)
-    path_json = os.path.join(results_dir, f"val_metrics_{classifier_name}_seed{seed}_fold{fold+1}.json")
-    with open(path_json, "w") as f:
-        json.dump(metrics, f, indent=2)
-
-    conf = confusion_matrix(y_val, y_pred)
     plt.figure(figsize=(5, 4))
-    sns.heatmap(conf, annot=True, fmt='d', cmap="Blues", cbar=False,
+    sns.heatmap(confusion_matrix(y_val, y_pred), annot=True, fmt='d', cmap="Blues", cbar=False,
                 xticklabels=le.classes_, yticklabels=le.classes_)
     plt.xlabel("Predicted")
     plt.ylabel("True")
-    plt.title(f"{classifier_name} - Fold {fold+1} - Seed {seed}")
+    plt.title(f"{classifier_name} - Seed {seed}")
     plt.tight_layout()
-    plt.savefig(os.path.join(results_dir, f"conf_matrix_{classifier_name}_seed{seed}_fold{fold+1}.png"))
+    plt.savefig(os.path.join(seed_dir, f"conf_matrix_{classifier_name}.png"))
     plt.close()
 
     return metrics
 
-def classification_pipeline(df_input, df_meta, split_path, args, classification):
-    group1, group2 = classification["group1"], classification["group2"]
-    seeds = classification["seeds"]
-    n_folds = classification.get("n_folds", 5)
+def classification_pipeline(df_input, df_meta, split_path, args):
+    group1, group2 = args["group1"], args["group2"]
+    seeds = args["seeds"]
     results_dir = args["path_umap_classification"]
 
     classifiers = {
@@ -97,42 +86,59 @@ def classification_pipeline(df_input, df_meta, split_path, args, classification)
     le = LabelEncoder()
     y_encoded = le.fit_transform(y_all)
 
-    test_mask = (split_array == 0)
-    train_mask = ~test_mask
+    train_mask = (split_array != 0)
     X_train_full, y_train_full = X_all[train_mask], y_encoded[train_mask]
 
     all_results = []
+
     for seed in seeds:
-        skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed)
-        for fold, (train_idx, val_idx) in enumerate(skf.split(X_train_full, y_train_full)):
-            X_train, y_train = X_train_full[train_idx], y_train_full[train_idx]
-            X_val, y_val = X_train_full[val_idx], y_train_full[val_idx]
-            for name, clf in classifiers.items():
-                metrics = evaluate_model(X_train, y_train, X_val, y_val,
-                                         classifier_name=name, classifier=clf, le=le,
-                                         results_dir=results_dir, seed=seed, fold=fold)
-                all_results.append(metrics)
+        seed_dir = os.path.join(results_dir, f"seed{seed}")
+        os.makedirs(seed_dir, exist_ok=True)
+
+        val_idx = np.random.RandomState(seed).choice(len(X_train_full), size=int(0.2 * len(X_train_full)), replace=False)
+        train_idx = np.setdiff1d(np.arange(len(X_train_full)), val_idx)
+
+        X_train, y_train = X_train_full[train_idx], y_train_full[train_idx]
+        X_val, y_val = X_train_full[val_idx], y_train_full[val_idx]
+
+        for name, clf in classifiers.items():
+            metrics = evaluate_model(
+                X_train, y_train, X_val, y_val,
+                classifier_name=name,
+                classifier=clf,
+                le=le,
+                seed_dir=seed_dir,
+                seed=seed
+            )
+            all_results.append(metrics)
 
     return pd.DataFrame(all_results)
 
-def main():
-    from preprocessing.loading import load_args_resolved
+def main_classification(params, df_input, df_meta):
+    output_dir = params["path_umap_classification"]
+    os.makedirs(output_dir, exist_ok=True)
 
-    args, config, paths = load_args_resolved()
-    classification = config["classification"]
+    log_path = os.path.join(output_dir, "log.txt")
+    log_to_file(log_path)
 
-    df_input = pd.read_pickle(args["df_path"])
-    df_meta = pd.read_csv(args["df_meta"])
+    print(f"\nUMAP-BASED CLASSIFICATION: {params['group1']} vs {params['group2']}\n")
 
-    split_path = os.path.join(paths["split_dir"], f"{classification['group1']}_{classification['group2']}_splitted.csv")
-    if not os.path.exists(split_path):
-        split_path = os.path.join(paths["split_dir"], f"{classification['group2']}_{classification['group1']}_splitted.csv")
+    split_path = resolve_split_csv_path(params["dir_split"], params["group1"], params["group2"])
+    df_results = classification_pipeline(df_input, df_meta, split_path, params)
 
-    if not os.path.exists(split_path):
-        raise FileNotFoundError("Split file not found for selected group pair.")
+    metrics = ["accuracy", "precision", "recall", "f1", "auc_roc"]
+    summary = df_results.groupby("model")[metrics].agg(["mean", "std"]).round(3)
+    summary.columns = [f"{m}_{s}" for m, s in summary.columns]
 
-    df_results = classification_pipeline(df_input, df_meta, split_path, args, classification)
-    print(df_results)
+    print("\n====== SUMMARY ACROSS SEEDS ======")
+    print(summary.reset_index().to_string(index=False))
+
+    summary_path = os.path.join(output_dir, "summary_metrics.csv")
+    summary.reset_index().to_csv(summary_path, index=False)
+
+    reset_stdout()
 
 if __name__ == "__main__":
-    main()
+    loader = ConfigLoader()
+    args, input_dataframe, metadata_dataframe = loader.load_all()
+    main_classification(args, input_dataframe, metadata_dataframe)

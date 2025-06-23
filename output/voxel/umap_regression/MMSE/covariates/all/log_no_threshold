@@ -1,6 +1,9 @@
-Dataframe shape after merge: (168, 161825)
-Meta columns: 8
-Feature matrix shape: (168, 161817) 
+
+-------------------- Dataset Info --------------------
+Meta columns (Labels and Covariates):        8
+Feature matrix shape (X):                (168, 161817)
+Complete dataframe shape after merge:    (168, 161825)
+-------------------------------------------------------
 
 Running UMAP...
 
@@ -10,8 +13,8 @@ OLS REGRESSION SUMMARY
 Dep. Variable:                   MMSE   R-squared:                       0.119
 Model:                            OLS   Adj. R-squared:                  0.091
 Method:                 Least Squares   F-statistic:                     4.359
-Date:                Mon, 16 Jun 2025   Prob (F-statistic):           0.000949
-Time:                        18:37:46   Log-Likelihood:                -498.72
+Date:                Fri, 20 Jun 2025   Prob (F-statistic):           0.000949
+Time:                        13:55:39   Log-Likelihood:                -498.72
 No. Observations:                 168   AIC:                             1009.
 Df Residuals:                     162   BIC:                             1028.
 Df Model:                           5                                         
@@ -35,32 +38,20 @@ Kurtosis:                       5.417   Cond. No.                         957.
 Notes:
 [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
 
-
---------------------------------------------------------------------------------
 SHUFFLING REGRESSION
---------------------------------------------------------------------------------
-R² real: 0.1186
-R² shuffled: 0.0297
-Empirical p:  0.0000
+R^2 real: 0.1186 | shuffled mean: 0.0297 | p-value: 0.0000
 
-
---------------------------------------------------------------------------------
-RMSE BY DIAGNOSTIC GROUP AND OVERALL METRICS
---------------------------------------------------------------------------------
+RMSE BY GROUP
        Mean_RMSE  Std_RMSE   N
 Group                         
+ADNI        3.00      2.62  72
 CBS         4.79      4.63  41
 PSP         3.14      2.16  55
-ADNI        3.00      2.62  72
 
-
-MAE:  3.481
+MAE: 3.481
 RMSE: 4.7096
 
-
---------------------------------------------------------------------------------
-SUBJECTS RANKED BY RMSE (BEST TO WORST)
---------------------------------------------------------------------------------
+SUBJECTS SORTED BY RMSE
         ID Group  CDR_SB  Predicted CDR_SB      RMSE
 137_S_4862  ADNI     1.0         25.984451  0.015549
 126_S_4507  ADNI     8.0         21.954895  0.045105

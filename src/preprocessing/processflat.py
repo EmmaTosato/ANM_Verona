@@ -1,56 +1,59 @@
-# processflat.py
-import pandas as pd
-import json
-import nibabel as nib
+# prcoessflat.py
 import os
-import pathlib
-import pickle
+import json
 import warnings
+import pandas as pd
+import numpy as np
+import nibabel as nib
+from sklearn.mixture import GaussianMixture
+from preprocessing.loading import ConfigLoader
+
+
+# Suppress all warnings to keep output clean
 warnings.filterwarnings("ignore")
 
-
-# ------------------------------------------------------------
-# Apply a threshold to voxel data in a DataFrame (0.1 or 0.2).
-# ------------------------------------------------------------
 def apply_threshold(dataframe, threshold):
+    """
+    Applies a lower-bound threshold to voxel intensities.
+    All values below the threshold are set to 0 (excluding the ID column).
+    """
     df_thr = dataframe.copy()
     df_thr.iloc[:, 1:] = df_thr.iloc[:, 1:].mask(df_thr.iloc[:, 1:] < threshold, 0)
     return df_thr
 
-# ------------------------------------------------------------
-# Apply a flatten mask.
-# ------------------------------------------------------------
 def apply_mask(df_thr, mask_path):
-    # Load and flatten the 3D mask
+    """
+    Applies a binary 3D mask to the voxel data (excluding 'ID').
+    The mask is flattened and used to retain only selected voxels.
+    """
+
     mask = nib.load(mask_path).get_fdata().flatten().astype(bool)
     assert mask.shape[0] == df_thr.shape[1] - 1, "Mask and data length mismatch"
 
-    # Apply mask to voxel columns (excluding 'ID')
     voxel_data = df_thr.iloc[:, 1:]
     voxel_data_masked = voxel_data.loc[:, mask]
 
-    # Combine with 'ID' and rename voxel columns to consecutive integers
     df_masked = pd.concat([df_thr[['ID']], voxel_data_masked], axis=1)
     df_masked.columns = ['ID'] + list(range(voxel_data_masked.shape[1]))
-
     return df_masked
 
-# ------------------------------------------------------------
-# EDA summary.
-# ------------------------------------------------------------
 def summarize_voxel_data(df_masked, threshold=None):
-    summary = {}
-    summary['Shape'] = df_masked.shape
+    """
+    Generates a summary of voxel intensity statistics.
+    Includes shape, zero-map count, and global/nonzero voxel stats.
+    """
+
+    summary = {'Shape': df_masked.shape}
+    values = df_masked.iloc[:, 1:]
 
     if threshold is not None:
-        values = df_masked.iloc[:, 1:]
         has_low = ((values > 0) & (values < threshold)).any().any()
-        summary[f'Values 0 - {threshold}'] = has_low  # renamed
+        summary[f'Values 0 - {threshold}'] = has_low
 
-    zero_rows = (df_masked.iloc[:, 1:] == 0).all(axis=1).sum()
+    zero_rows = (values == 0).all(axis=1).sum()
     summary['Zero maps'] = f"{zero_rows} of {df_masked.shape[0]}"
 
-    voxel_data = df_masked.iloc[:, 1:].values
+    voxel_data = values.values
     nonzero_voxels = voxel_data[voxel_data != 0]
 
     summary.update({
@@ -65,21 +68,16 @@ def summarize_voxel_data(df_masked, threshold=None):
     })
     return summary
 
-# ---------------------------
-# Merge voxel data with metadata
-# ---------------------------
 def x_features_return(df_voxel, df_labels):
-    # Meta data columns
+    """
+    Merges voxel dataframe with metadata and returns:
+    - the full merged dataframe (with metadata + features)
+    - the matrix of features only (X), excluding metadata columns.
+    """
     meta_columns = list(df_labels.columns)
-
-    # Merging datasets
     dataframe_merge = pd.merge(df_voxel, df_labels, on='ID', how='left', validate='one_to_one')
-
-    # Ordering
     ordered_cols = meta_columns + [col for col in dataframe_merge.columns if col not in meta_columns]
     dataframe_merge = dataframe_merge[ordered_cols]
-
-    # Features data
     x = dataframe_merge.drop(columns=meta_columns)
 
     print("\n-------------------- Dataset Info --------------------")
@@ -90,32 +88,43 @@ def x_features_return(df_voxel, df_labels):
 
     return dataframe_merge, x
 
+def preprocessing_pipeline(params):
+    """
+    Runs the full preprocessing pipeline:
+    - loads config
+    - loads voxel and metadata
+    - applies thresholding and masking
+    - performs optional EDA
+    - saves all outputs
+    """
+    print("Starting preprocessing...")
 
-def main_processing_flat(df, df_meta, gm_mask_path, harvard_mask_path, do_eda=False):
-    df_summary = None
+    # Load data
+    df = pd.read_pickle(params['raw_df'])
+    df_meta = pd.read_csv(params['df_meta'])
 
-    # Align metadata to raw_df
+    # Align metadata
     df_meta = df_meta.set_index('ID').loc[df['ID']].reset_index()
     assert all(df['ID'] == df_meta['ID']), "Mismatch between ID of df and df_meta_ordered"
     print("The IDs are now perfectly aligned...")
 
-    # Apply thresholding
+    # Apply thresholds
     df_thr_01 = apply_threshold(df, threshold=0.1)
     df_thr_02 = apply_threshold(df, threshold=0.2)
     print("Thresholds applied...")
 
-    # GM masking
-    df_gm_masked = apply_mask(df, gm_mask_path)
-    df_thr01_gm_masked = apply_mask(df_thr_01, gm_mask_path)
-    df_thr02_gm_masked = apply_mask(df_thr_02, gm_mask_path)
+    # Apply GM masks
+    df_gm_masked = apply_mask(df, params['gm_mask_path'])
+    df_thr01_gm_masked = apply_mask(df_thr_01, params['gm_mask_path'])
+    df_thr02_gm_masked = apply_mask(df_thr_02, params['gm_mask_path'])
 
-    # Harvard masking
-    df_har_masked = apply_mask(df, harvard_mask_path)
-    df_thr01_har_masked = apply_mask(df_thr_01, harvard_mask_path)
-    df_thr02_har_masked = apply_mask(df_thr_02, harvard_mask_path)
+    # Apply Harvard masks
+    df_har_masked = apply_mask(df, params['harvard_oxford_mask_path'])
+    df_thr01_har_masked = apply_mask(df_thr_01, params['harvard_oxford_mask_path'])
+    df_thr02_har_masked = apply_mask(df_thr_02, params['harvard_oxford_mask_path'])
     print("Masks applied...")
 
-    # Collect all outputs
+    # Collect outputs
     outputs = {
         'df_thr01_gm': df_thr01_gm_masked,
         'df_thr02_gm': df_thr02_gm_masked,
@@ -125,43 +134,24 @@ def main_processing_flat(df, df_meta, gm_mask_path, harvard_mask_path, do_eda=Fa
         'df_har': df_har_masked
     }
 
-    # Optional EDA
-    if do_eda:
-        eda_list = []
-        for name, dfm in outputs.items():
-            thr_val = None
-            if name.startswith('thr_'):
-                thr_val = float(name.split('_')[1].replace('_', '.'))
-            summary = summarize_voxel_data(dfm, threshold=thr_val)
-            summary['Dataset'] = name
-            eda_list.append(summary)
-        df_summary = pd.DataFrame(eda_list).set_index('Dataset')
+    # EDA summary
+    eda_list = []
+    for name, dfm in outputs.items():
+        thr_val = 0.1 if 'thr01' in name else 0.2 if 'thr02' in name else None
+        summary = summarize_voxel_data(dfm, threshold=thr_val)
+        summary['Dataset'] = name
+        eda_list.append(summary)
+    df_summary = pd.DataFrame(eda_list).set_index('Dataset')
 
-    return outputs, df_summary
-
-
-if __name__ == "__main__":
-    with open("src/preprocessing/paths.json", "r") as f:
-        config = json.load(f)
-
-    # Generate outputs and summary
-    print("Starting preprocessing...")
-    outputs, df_summary = main_processing_flat(
-        df=pd.read_pickle(config['raw_df']),
-        df_meta=pd.read_csv(config['df_meta']),
-        gm_mask_path=config['gm_mask_path'],
-        harvard_mask_path=config['harvard_oxford_mask_path'],
-        do_eda=True
-    )
-
-    # Save outputs
+    # Save everything
     print("Saving...")
     for key, df_out in outputs.items():
-        out_path = os.path.join(config['dir_fdc_df'], f"{key}.pkl")
+        out_path = os.path.join(params['dir_fdc_df'], f"{key}.pkl")
         df_out.to_pickle(out_path)
 
-
-    # Save EDA summary
-    df_summary.to_csv(os.path.join(config['dir_dataframe'], "meta/df_summary.csv"))
+    df_summary.to_csv(os.path.join(params['dir_dataframe'], "meta/df_summary.csv"))
     print("Done.")
 
+if __name__ == "__main__":
+    args = ConfigLoader().args
+    preprocessing_pipeline(args)

@@ -5,7 +5,8 @@
     "dir_data_utils": "data_utils",
     "dir_dataframe": "data/dataframes",
     "dir_fdc_df": "data/dataframes/fdc",
-    "dir_yeo_df": "data/dataframes/networks"
+    "dir_yeo_df": "data/dataframes/networks",
+    "dir_split": "data/dataframes/split"
   },
 
   "masks": {

@@ -1,3 +1,5 @@
+# hyper_tuning.py
+
 import json
 import os
 import pandas as pd
@@ -6,6 +8,15 @@ from copy import deepcopy
 from run import main_worker
 from utils import create_tuning_summary
 
+def is_valid_combo(params):
+    model = params["model_type"]
+    batch = params["batch_size"]
+
+    if model == "vgg16" and batch not in [8, 16]:
+        return False
+    if model in ["resnet", "densenet"] and batch not in [16, 24]:
+        return False
+    return True
 
 def tuning(base_args_path, grid_path):
     # Load fixed config and hyperparameter grid
@@ -32,28 +43,29 @@ def tuning(base_args_path, grid_path):
     combinations = list(product(*grid.values()))
     all_results = []
 
-    for i, combo in enumerate(combinations):
-        config_id = i + 1
-
-        # Prepare parameters for this config
+    for combo in combinations:
+        # Prepare parameters
         params = deepcopy(base_args)
         combo_params = dict(zip(keys, combo))
         params.update(combo_params)
 
-        # Inject tracking info
+        # Skip invalid combo
+        if not is_valid_combo(params):
+            continue
+
+        # Assign variables
+        config_id = len(all_results) + 1
         params["config_id"] = config_id
         params["tuning_flag"] = True
 
-        # Set output paths
+        # Output folders
         config_dir = os.path.join(run_dir, f"config{config_id}")
         os.makedirs(config_dir, exist_ok=True)
         params["runs_dir"] = config_dir
         params["plot_dir"] = config_dir
 
-        # Run training
-        result = main_worker(params)
-
-        # Collect results for CSV
+        # Train and collect results
+        result = main_worker(params, config_id)
         summary_row = create_tuning_summary(config_id, params, result)
         all_results.append(summary_row)
 

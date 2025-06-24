@@ -37,6 +37,7 @@ class FCDataset(Dataset):
 
     def __getitem__(self, idx):
         file_path, label = self.samples[idx]
+        subj_id = os.path.basename(file_path).replace('.processed.npy', '')
 
         # Load and reshape the volume: (1, 91, 109, 91)
         volume = np.load(file_path)
@@ -48,7 +49,7 @@ class FCDataset(Dataset):
         if self.transform:
             x = self.transform(x)
 
-        return x, y
+        return {'X': x, 'y': y, 'id': subj_id}
 
 
 class AugmentedFCDataset(Dataset):
@@ -86,6 +87,7 @@ class AugmentedFCDataset(Dataset):
 
     def __getitem__(self, idx):
         file_path, label = self.samples[idx]
+        subj_id = os.path.basename(file_path).replace('.npy', '').split('_')[0]  # o regola secondo tuo naming
 
         # Load and reshape the volume: (1, 91, 109, 91)
         volume = np.load(file_path)
@@ -93,7 +95,9 @@ class AugmentedFCDataset(Dataset):
 
         x = torch.tensor(volume, dtype=torch.float32)
         y = torch.tensor(label, dtype=torch.long if self.task == 'classification' else torch.float32)
-
         if self.transform:
             x = self.transform(x)
-        return x, y
+
+        return {'X': x, 'y': y, 'id': subj_id}
+
+

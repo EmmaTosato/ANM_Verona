@@ -104,7 +104,7 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
     return best_accuracy, best_train_loss, best_val_loss, best_epoch
 
 
-def main_worker(params):
+def main_worker(params, config_id = None ):
     # Handle run subdirectory
     if params.get("tuning_flag", False):
         ckpt_dir = params["runs_dir"]
@@ -169,10 +169,15 @@ def main_worker(params):
         fold_val_losses = []
         fold_infos = []
 
+        # Print in case of tuning
+        if params['tuning_flag']:
+            print(f"========== TUNING CONFIG {config_id} ============")
+            for k in ["model_type", "batch_size", "lr", "optimizer", "weight_decay", "epochs", "n_folds", "seed"]:
+                print(f"{k}: {params[k]}")
+            print("\n")
+
         # Training
-        print("================================")
         print("========== TRAINING ============")
-        print("================================")
         for fold, (train_idx, val_idx) in enumerate(skf.split(subjects, labels)):
             print(f"\n--- Fold {fold + 1}/{params['n_folds']} ---")
 

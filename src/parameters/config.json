@@ -1,34 +1,58 @@
 {
-  "data": {
-    "dataset_type": "fdc",
-    "threshold": false
+  "job": {
+    "dataset_type": "voxel",
+    "threshold": false,
+    "task_type": "classification",
+    "umap": true
+  },
+
+  "classification": {
+    "group1": "ADNI",
+    "group2": "PSP",
+    "seeds": [42],
+    "n_folds": 5
+  },
+
+  "regression": {
+    "target_variable": "CDR_SB",
+    "flag_covariates": true,
+    "group_regression": false,
+    "group_col": "Group"
+  },
+
+  "plotting": {
+    "do_evaluation": false,
+    "plot_cluster": true,
+    "plot_regression": true,
+    "save_flag": true
   },
 
   "fixed_parameters": {
-    "output_dir": "",
+    "output_dir": "output/",
     "covariates": ["Sex", "Age", "Education"],
     "y_log_transform": false,
     "color_by_group": true,
     "group_name": "Group"
   },
 
-  "plotting": {
-    "plot_cluster": true,
-    "do_evaluation": false,
-    "plot_regression": true
+   "processing3D": {
+    "normalization": true,
+    "augmentation": false,
+    "thresholding": "None"
   },
 
-  "regression": {
-    "target_variable": "MMSE",
-    "flag_covariates": true,
-    "group_regression": false,
-    "group_col": "Group"
-  },
+  "classification_grid": {
+    "SVM": {
+      "C": [0.01, 0.1, 1, 10, 100],
+      "gamma": ["scale", "auto", 0.01, 0.001],
+      "kernel": ["rbf", "linear"]
+    },
 
-  "classification": {
-    "group1": "ADNI",
-    "group2": "PSP",
-    "seeds": [42, 43, 44],
-    "n_folds": 5
-  }
+    "RandomForest": {
+      "n_estimators": [100, 200, 300],
+      "max_depth": [null, 5, 10, 20, 30],
+      "min_samples_split": [2, 5]
+    }
+}
+
 }

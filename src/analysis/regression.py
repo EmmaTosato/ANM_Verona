@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from preprocessing.loading import ConfigLoader
+from preprocessing.config import ConfigLoader
 from preprocessing.processflat import x_features_return
 from analysis.plotting import plot_ols_diagnostics, plot_actual_vs_predicted, plot_umap_embedding
-from analysis.utils import log_to_file, reset_stdout, run_umap
+from analysis.utils import log_to_file, reset_stdout, run_umap, build_output_path
 
 
 
@@ -35,12 +35,23 @@ def remove_missing_values(raw_df, meta_df, target_col):
     ids_nan = meta_df[meta_df[target_col].isna()]['ID'].tolist()
     return raw_df[~raw_df['ID'].isin(ids_nan)].reset_index(drop=True)
 
-def build_design_matrix(df_merged, x_umap, covariates=None):
+def build_design_matrix(df_merged, x_input, covariates=None):
     """
     Builds the design matrix for regression:
-    - Includes UMAP coordinates
+    - Uses projected features (e.g., UMAP or original features)
     - Adds dummy-coded covariates if provided
     """
+    if x_input.shape[1] == 2:
+        x = pd.DataFrame(x_input, columns=['UMAP1', 'UMAP2'])
+    else:
+        x = pd.DataFrame(x_input, columns=[f'X{i+1}' for i in range(x_input.shape[1])])
+
+    if covariates:
+        covar = pd.get_dummies(df_merged[covariates], drop_first=True)
+        x = pd.concat([x, covar], axis=1)
+
+    return x.astype(float)
+
     x = pd.DataFrame(x_umap, columns=['UMAP1', 'UMAP2'])
     if covariates:
         covar = pd.get_dummies(df_merged[covariates], drop_first=True)
@@ -91,21 +102,32 @@ def regression_pipeline(df_input, df_meta, args):
     - Computes and prints evaluation metrics
     - Generates diagnostic plots
     """
+    # Remove missing values based on target variable
     df_input = remove_missing_values(df_input, df_meta, args['target_variable'])
-    df_merged, x = x_features_return(df_input, df_meta)
+    # Merge input features with metadata
+    df_merged, x_feature = x_features_return(df_input, df_meta)
+
+    # Target variable handling
     y = np.log1p(df_merged[args['target_variable']]) if args['y_log_transform'] else df_merged[args['target_variable']]
-    x_umap = run_umap(x)
+    # Feature projection
+    if args["umap"]:
+        x = run_umap(x_feature)
+    else:
+        x = x_feature
 
-    x_ols = build_design_matrix(df_merged, x_umap, args['covariates'])
+    x_ols = build_design_matrix(df_merged, x, args["covariates"])
 
+    # Fit OLS model
     model, y_pred, residuals = fit_ols_model(x_ols, y)
+    # Perform shuffling regression
     r2_real, r2_shuffled, p_value = shuffling_regression(x_ols, y)
+    # Compute RMSE statistics
     df_sorted, rmse_stats = compute_rmse_stats(df_merged, y_pred, residuals)
 
-    if args['plot_regression']:
-        group_labels = df_merged[args['group_name']]
-        plot_ols_diagnostics(y, y_pred, residuals, args['prefix'], args['output_dir'], True, args['color_by_group'], group_labels)
-        plot_actual_vs_predicted(y, y_pred, args['prefix'], args['output_dir'], True)
+    # Plotting
+    group_labels = df_merged[args['group_name']]
+    plot_ols_diagnostics(y, y_pred, residuals,args['prefix'], args['output_dir'], args['plot_regression'], args['save_flag'],args['color_by_group'], group_labels)
+    plot_actual_vs_predicted(y, y_pred, args['prefix'], args['output_dir'], args['plot_regression'], args['save_flag'])
 
     print("OLS REGRESSION SUMMARY")
     print(model.summary())
@@ -124,7 +146,8 @@ def main_regression(params, df_input, df_meta):
     - Handles split by group or global
     - Manages output structure and logging
     """
-    base_out = os.path.join(params["path_umap_regression"], params["target_variable"])
+    base_out_temp = build_output_path(params['output_dir'], params['task_type'], params['dataset_type'], params['umap'])
+    base_out = os.path.join(base_out_temp, params["target_variable"])
     os.makedirs(base_out, exist_ok=True)
 
     params['log'] = f"log_{params['threshold']}_threshold" if params['threshold'] in [0.1, 0.2] else "log_no_threshold"

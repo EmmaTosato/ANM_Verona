@@ -1,19 +1,28 @@
+# plotting.py
+
 import os
+import re
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import seaborn as sns
-import matplotlib.collections as mcoll
-import re
 from matplotlib.font_manager import FontProperties
+import matplotlib.collections as mcoll
+from sklearn.metrics import confusion_matrix
 
+# === Utility Functions ===
 def clean_title_string(title):
     title = re.sub(r'\bcovariates\b', '', title, flags=re.IGNORECASE)
     title = re.sub(r'[\s\-]+', '_', title)
     title = re.sub(r'_+', '_', title)
     return title.strip('_').lower()
 
-def plot_ols_diagnostics(target, predictions, residuals, title, save_path=None, plot_flag=True, color_by_group=False, group_labels=None):
+# === Regression & Diagnostic Plots ===
+def plot_ols_diagnostics(target, predictions, residuals,
+                         title, save_path=None,
+                         plot_flag=True, save_flag=False,
+                         color_by_group=False, group_labels=None):
     title_font = FontProperties(family="DejaVu Sans", weight='bold', size=14)
     label_font = FontProperties(family="DejaVu Sans", weight='bold', size=12)
 
@@ -67,7 +76,7 @@ def plot_ols_diagnostics(target, predictions, residuals, title, save_path=None, 
             leg.get_frame().set_edgecolor("black")
             leg.get_frame().set_linewidth(1)
 
-        if save_path:
+        if save_path and save_flag:
             filename = f"{clean_title_string(title)}_diagnostics_labelled.png"
             g.savefig(os.path.join(save_path, filename), dpi=300, bbox_inches='tight', pad_inches=0.05)
 
@@ -99,7 +108,9 @@ def plot_ols_diagnostics(target, predictions, residuals, title, save_path=None, 
 
     plt.close()
 
-def plot_actual_vs_predicted(target, predictions, title, save_path=None, plot_flag=True):
+def plot_actual_vs_predicted(target, predictions,
+                             title, save_path=None,
+                             plot_flag=False, save_flag = False):
     title_font = FontProperties(family="DejaVu Sans", weight='bold', size=14)
     label_font = FontProperties(family="DejaVu Sans", weight='bold', size=12)
 
@@ -122,7 +133,7 @@ def plot_actual_vs_predicted(target, predictions, title, save_path=None, plot_fl
 
     plt.tight_layout()
 
-    if save_path:
+    if save_path and save_flag:
         filename = f"{clean_title_string(title)}_distribution.png"
         plt.savefig(os.path.join(save_path, filename), dpi=300)
 
@@ -131,7 +142,12 @@ def plot_actual_vs_predicted(target, predictions, title, save_path=None, plot_fl
 
     plt.close()
 
-def plot_clusters_vs_groups(x_umap, labels_dict, group_column, save_path, title_prefix, margin=2.0, plot_flag=True, colors_gmm=False):
+# === UMAP & Clustering Plots ===
+def plot_clusters_vs_groups(x_umap, labels_dict, group_column,
+                            save_path, title_prefix,
+                            margin=2.0,
+                            plot_flag=True, save_flag = False,
+                            colors_gmm=False):
     n = len(labels_dict)
     fig, axes = plt.subplots(n, 2, figsize=(12, 6 * n))
     if n == 1:
@@ -156,19 +172,17 @@ def plot_clusters_vs_groups(x_umap, labels_dict, group_column, save_path, title_
     fig.suptitle("Clustering Results", fontsize=22, fontweight='bold')
     fig.text(0.5, 0.92, title_prefix, fontsize=16, ha='center')
 
-    if save_path:
+    if save_path and save_flag:
         fname = re.sub(r'\s+', '_', title_prefix.strip().lower()) + "_clustering.png"
         fig.savefig(os.path.join(save_path, fname), dpi=300, bbox_inches='tight')
     if plot_flag:
         plt.show()
     plt.close(fig)
 
-# plotting.py
-import os
-import re
-import matplotlib.pyplot as plt
-
-def plot_umap_embedding(x_umap, title=None, save_path=None, plot_flag=True, dot_color="#d74c4c"):
+def plot_umap_embedding(x_umap,
+                        title=None, save_path=None,
+                        plot_flag=True, save_flag = False,
+                        dot_color="#d74c4c"):
     """
     Plots 2D UMAP embedding with optional save and display.
     """
@@ -199,7 +213,7 @@ def plot_umap_embedding(x_umap, title=None, save_path=None, plot_flag=True, dot_
     plt.xticks([])
     plt.yticks([])
 
-    if save_path:
+    if save_path and save_flag:
         clean_title = re.sub(r'[\s\-]+', '_', title.strip().lower())
         save_file = os.path.join(save_path, f"{clean_title}_embedding.png")
         plt.savefig(save_file, dpi=300)
@@ -207,4 +221,22 @@ def plot_umap_embedding(x_umap, title=None, save_path=None, plot_flag=True, dot_
     if plot_flag:
         plt.show()
 
+    plt.close()
+
+# === Classification Evaluation ===
+def plot_confusion_matrix(y_true, y_pred, class_names, title, save_path):
+    """
+    Plots and saves a confusion matrix.
+    """
+    plt.figure(figsize=(5, 4))
+    sns.heatmap(
+        confusion_matrix(y_true, y_pred),
+        annot=True, fmt='d', cmap="Blues",
+        xticklabels=class_names, yticklabels=class_names
+    )
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(save_path)
     plt.close()

@@ -6,8 +6,7 @@ import pandas as pd
 import numpy as np
 import nibabel as nib
 from sklearn.mixture import GaussianMixture
-from preprocessing.loading import ConfigLoader
-
+from preprocessing.config import ConfigLoader
 
 # Suppress all warnings to keep output clean
 warnings.filterwarnings("ignore")
@@ -36,6 +35,28 @@ def apply_mask(df_thr, mask_path):
     df_masked = pd.concat([df_thr[['ID']], voxel_data_masked], axis=1)
     df_masked.columns = ['ID'] + list(range(voxel_data_masked.shape[1]))
     return df_masked
+
+def gmm_label_cdr(df_meta):
+    """
+    Applies Gaussian Mixture Model (GMM) clustering to the CDR_SB scores.
+    Reorders GMM labels by ascending severity and maps them to the full metadata.
+    """
+    df_cdr = df_meta[['ID', 'CDR_SB']].dropna().copy()
+    x = df_cdr['CDR_SB'].values.reshape(-1, 1)
+    gmm = GaussianMixture(n_components=3, random_state=42).fit(x)
+    df_cdr['labels_gmm_cdr'] = gmm.predict(x)
+
+    # Reorder labels by mean CDR_SB
+    means = df_cdr.groupby('labels_gmm_cdr')['CDR_SB'].mean().sort_values()
+    label_map = {old: new for new, old in enumerate(means.index)}
+    df_cdr['labels_gmm_cdr'] = df_cdr['labels_gmm_cdr'].map(label_map)
+
+    # Assign labels back to full metadata
+    full_map = dict(zip(df_cdr['ID'], df_cdr['labels_gmm_cdr']))
+    df_meta = df_meta.drop(columns=['labels_gmm_cdr'], errors='ignore')
+    df_meta['labels_gmm_cdr'] = df_meta['ID'].map(full_map).astype('Int64')
+    return df_meta
+
 
 def summarize_voxel_data(df_masked, threshold=None):
     """
@@ -91,8 +112,8 @@ def x_features_return(df_voxel, df_labels):
 def preprocessing_pipeline(params):
     """
     Runs the full preprocessing pipeline:
-    - loads config
     - loads voxel and metadata
+    - applies GMM clustering to CDR_SB
     - applies thresholding and masking
     - performs optional EDA
     - saves all outputs
@@ -102,6 +123,10 @@ def preprocessing_pipeline(params):
     # Load data
     df = pd.read_pickle(params['raw_df'])
     df_meta = pd.read_csv(params['df_meta'])
+
+    # Add GMM cluster labels
+    df_meta = gmm_label_cdr(df_meta)
+    df_meta.to_csv(params["df_meta"], index=False)
 
     # Align metadata
     df_meta = df_meta.set_index('ID').loc[df['ID']].reset_index()

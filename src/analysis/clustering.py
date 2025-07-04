@@ -1,4 +1,5 @@
 # clustering.py
+
 import os
 import re
 import warnings
@@ -8,12 +9,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 import hdbscan
-from preprocessing.loading import ConfigLoader
+from preprocessing.config import ConfigLoader
 from preprocessing.processflat import x_features_return
 from analysis.umap_run import run_umap
 from analysis.clustering_evaluation import evaluate_kmeans, evaluate_gmm, evaluate_hdbscan, evaluate_consensus
 from analysis.plotting import plot_umap_embedding, plot_clusters_vs_groups
-from analysis.utils import log_to_file, reset_stdout, run_umap
+from analysis.utils import log_to_file, reset_stdout, run_umap, build_output_path
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore")
@@ -37,7 +38,7 @@ def run_clustering(x_umap):
         "K-Means": KMeans(n_clusters=3, random_state=42).fit_predict(x_umap)
     }
 
-def clustering_pipeline(params, df_input, df_meta):
+def clustering_umap_pipeline(params, df_input, df_meta):
     """
     Executes the full clustering pipeline:
     - Embeds data using UMAP
@@ -49,7 +50,7 @@ def clustering_pipeline(params, df_input, df_meta):
     df_merged, x = x_features_return(df_input, df_meta)
 
     x_umap = run_umap(x)
-    plot_umap_embedding(x_umap, title=params['prefix'], save_path=params['path_umap'], plot_flag=params['plot_cluster'])
+    plot_umap_embedding(x_umap, title=params['prefix'], save_path=params['path_umap'], plot_flag=params['plot_cluster'], save_flag= params['save_flag'])
 
     if params.get("do_evaluation"):
         clean_title = re.sub(r'[\s\-]+', '_', params['prefix'].strip().lower())
@@ -70,9 +71,11 @@ def clustering_pipeline(params, df_input, df_meta):
         'labels_gmm_cdr': df_merged['labels_gmm_cdr']
     })
 
-    if params['plot_cluster'] or params['path_cluster']:
-        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['group'], params['path_cluster'], params['prefix'] + " - Group label")
-        plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['labels_gmm_cdr'], params['path_cluster'], params['prefix'] + " - GMM label", colors_gmm=True)
+
+    plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['group'], params['path_cluster'],params['prefix'] + " - Group label",
+                            plot_flag=params['plot_cluster'], save_flag = params['save_flag'])
+    plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['labels_gmm_cdr'], params['path_cluster'],params['prefix'] + " - GMM label",
+                            plot_flag=params['plot_cluster'], save_flag = params['save_flag'], colors_gmm=True)
 
     return labeling_umap
 
@@ -84,8 +87,14 @@ def main_clustering(params, df_input, df_meta):
     - Merges with df_meta
     - Saves updated metadata
     """
+    params['path_umap'] = build_output_path(params['output_dir'], "", params['dataset_type'], params['umap'])
+    params['path_cluster'] = build_output_path(params['output_dir'], params['task_type'], params['dataset_type'], params['umap'])
+    params['path_opt_cluster'] = build_output_path(params['output_dir'], "optimal_cluster", params['dataset_type'], params['umap'])
     params['prefix'] = f"{params['threshold']} Threshold" if params['threshold'] in [0.1, 0.2] else "No Threshold"
-    labeling_umap = clustering_pipeline(params, df_input, df_meta)
+
+    # Unsupervised clustering after umap
+    if params['umap']:
+        labeling_umap = clustering_umap_pipeline(params, df_input, df_meta)
 
     # Decide suffix and rename columns if needed
     if params.get("threshold") in [0.1, 0.2]:

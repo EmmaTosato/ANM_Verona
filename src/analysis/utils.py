@@ -2,13 +2,12 @@
 import sys
 import umap
 import numpy as np
+import os
 
-np.random.seed(42)
-
-def run_umap(x_input, n_neighbors=15, n_components=2, min_dist=0.1, metric='euclidean'):
+def run_umap(x_train, x_test=None, n_neighbors=15, n_components=2, min_dist=0.1, metric='euclidean', random_state=42):
     """
-    Computes UMAP embedding on input data.
-    Returns the embedded 2D coordinates.
+    Fits UMAP on x_train. If x_test is provided, applies transform and returns both.
+    Otherwise, returns embedding of x_train
     """
     reducer = umap.UMAP(
         n_neighbors=n_neighbors,
@@ -25,9 +24,16 @@ def run_umap(x_input, n_neighbors=15, n_components=2, min_dist=0.1, metric='eucl
         repulsion_strength=1.0,
         negative_sample_rate=5,
         transform_queue_size=4.0,
-        random_state=42
+        random_state=random_state
     )
-    return reducer.fit_transform(x_input)
+
+    x_train_embedded = reducer.fit_transform(x_train)
+
+    if x_test is not None:
+        x_test_embedded = reducer.transform(x_test)
+        return x_train_embedded, x_test_embedded
+
+    return x_train_embedded
 
 
 def log_to_file(log_path):
@@ -43,3 +49,33 @@ def reset_stdout():
     """
     sys.stdout.close()
     sys.stdout = sys.__stdout__
+
+def resolve_split_csv_path(split_dir, group1, group2):
+    """
+    Resolves the correct split CSV file based on group1 and group2 names,
+    supporting both possible name orders.
+    """
+    fname1 = f"{group1}_{group2}_splitted.csv"
+    fname2 = f"{group2}_{group1}_splitted.csv"
+    path1 = os.path.join(split_dir, fname1)
+    path2 = os.path.join(split_dir, fname2)
+    if os.path.exists(path1):
+        print(f"\nUsing split file: {path1}\n")
+        return path1
+    elif os.path.exists(path2):
+        print(f"\nUsing split file: {path2}\n")
+        return path2
+    else:
+        raise FileNotFoundError(f"No split CSV found for {group1}, {group2} in {split_dir}")
+
+import os
+
+def build_output_path(base_dir, job_type, dataset_type, umap):
+    """
+    Builds the output directory path based on base_dir, dataset_type, job_type and umap flag.
+    If job_type is empty, returns only up to 'umap' or dataset folder.
+    """
+    if umap and not job_type:
+        return os.path.join(base_dir, dataset_type, "umap")
+    prefix = "umap_" if umap else ""
+    return os.path.join(base_dir, dataset_type, f"{prefix}{job_type}" if job_type else "")

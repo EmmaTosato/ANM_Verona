@@ -1,58 +1,86 @@
 from dataclasses import dataclass
 import json
-from typing import Dict, Any, Tuple
+import pandas as pd
 
 @dataclass
 class ConfigLoader:
-    config_path: str = "src/parameters/config.json"
-    paths_path: str = "src/parameters/paths.json"
+    """
+    A class to load and merge configuration parameters from JSON files.
+    Produces a unified dictionary `args` that includes all values from config.json and paths.json,
+    plus derived paths such as df_path based on dataset type and threshold.
+    """
+    def __init__(self, config_path="src/parameters/config.json", paths_path="src/parameters/paths.json"):
+        # Load configuration and paths from JSON
+        with open(config_path) as f:
+            self.config = json.load(f)
+        with open(paths_path) as f:
+            self.paths = json.load(f)
 
-    def load(self) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Dict[str, str]]]:
-        with open(self.config_path) as f:
-            config = json.load(f)
-        with open(self.paths_path) as f:
-            paths = json.load(f)
+        # Merge both configs into a single flat dictionary
+        self.args = self._resolve_args()
 
+    def _resolve_args(self):
         args = {}
-        for section in config.values():
-            if isinstance(section, dict):
-                args.update(section)
 
-        flat_paths = {}
-        for section in paths.values():
+        # Flatten sections from config.json
+        for section_name, section in self.config.items():
             if isinstance(section, dict):
-                flat_paths.update(section)
+                for k, v in section.items():
+                    args[k] = v
+            else:
+                args[section_name] = section
 
-        args["df_path"] = self.resolve_data_path(
-            dataset_type=args.get("dataset_type", "fdc"),
-            threshold=args.get("threshold"),
-            paths=paths
+        # Flatten sections from paths.json
+        for section_name, section in self.paths.items():
+            if isinstance(section, dict):
+                for k, v in section.items():
+                    args[k] = v
+            else:
+                args[section_name] = section
+
+        # Compute and store df_path based on dataset type and threshold
+        args["df_path"] = self._resolve_data_path(
+            dataset_type=args["dataset_type"],
+            threshold=args["threshold"],
+            flat_args=args
         )
 
-        args.update(flat_paths)
-        return args, config, paths
+        return args
 
-    @staticmethod
-    def resolve_data_path(dataset_type: str, threshold, paths: Dict[str, Any]) -> str:
-        flat_paths = {}
-        for section in paths.values():
-            if isinstance(section, dict):
-                flat_paths.update(section)
-
-        if dataset_type == "fdc":
+    def _resolve_data_path(self, dataset_type, threshold, flat_args):
+        """
+        Selects the correct dataframe path based on dataset type and threshold.
+        Values must match keys defined in paths.json.
+        """
+        if dataset_type == "voxel":
             if not threshold:
-                return flat_paths["df_masked"]
-            if threshold == 0.2:
-                return flat_paths["df_masked_02"]
-            raise ValueError(f"No FDC path defined for threshold={threshold}")
-
-        if dataset_type == "networks":
+                return flat_args["df_masked"]
+            elif threshold == 0.2:
+                return flat_args["df_masked_02"]
+        elif dataset_type == "networks":
             if not threshold:
-                return flat_paths["net_noThr"]
-            if threshold == 0.2:
-                return flat_paths["net_thr02"]
-            if threshold == 0.1:
-                return flat_paths["net_thr01"]
-            raise ValueError(f"No network path defined for threshold={threshold}")
+                return flat_args["yeo_noThr"]
+            elif threshold == 0.2:
+                return flat_args["yeo_02thr"]
+            elif threshold == 0.1:
+                return flat_args["yeo_01thr"]
 
-        raise ValueError(f"Unknown dataset_type: {dataset_type}")
+        raise ValueError(f"Invalid dataset_type={dataset_type} or threshold={threshold}")
+
+    def load_all(self):
+        """
+        Loads the main dataframe (df) and metadata (meta) using resolved paths.
+        Returns the args dictionary along with both dataframes.
+        """
+        dataset_type = self.args["dataset_type"]
+
+        if dataset_type == "voxel":
+            df = pd.read_pickle(self.args["df_path"])
+        elif dataset_type == "networks":
+            df = pd.read_csv(self.args["df_path"])
+        else:
+            raise ValueError(f"Unsupported dataset_type: {dataset_type}")
+
+        meta = pd.read_csv(self.args["df_meta"])
+
+        return self.args, df, meta

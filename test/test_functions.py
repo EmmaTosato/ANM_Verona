@@ -2,8 +2,9 @@ import os
 import pandas as pd
 import pytest
 import json
+from preprocessing.loading import load_metadata
 
-from preprocessing.data_loader import load_fdc_maps, load_metadata, gmm_label_cdr, load_yeo
+from preprocessing.loading import load_fdc_maps, load_metadata, gmm_label_cdr
 
 # Load config
 with open("src/parameters/paths.json", "r") as f:
@@ -49,17 +50,35 @@ def test_load_metadata():
     assert df_meta["ID"].is_unique, "Duplicate IDs found in df_meta"
 
 
+def test_split_consistency():
+    split_dir = "data/dataframes/split"
+    meta_path = "data/dataframes/meta/df_meta.csv"
+    df_meta = pd.read_csv(meta_path)
 
-def test_load_yeo():
-    # Load metadata and apply GMM labels
-    df_meta = load_metadata(config["cognitive_dataset"])
-    df_meta = gmm_label_cdr(df_meta)
+    count = 1
 
-    # Load Yeo networks
-    df_no_thr, df_thr01, df_thr02 = load_yeo(config, df_meta)
+    for csv_name in os.listdir(split_dir):
+        if not csv_name.endswith(".csv"):
+            continue
+        path = os.path.join(split_dir, csv_name)
+        df_split = pd.read_csv(path)
 
-    # Expected shape including ID column
-    expected_shape = (176, 9)
-    assert df_no_thr.shape == expected_shape, f"df_no_thr shape mismatch: {df_no_thr.shape}"
-    assert df_thr01.shape == expected_shape, f"df_thr01 shape mismatch: {df_thr01.shape}"
-    assert df_thr02.shape == expected_shape, f"df_thr02 shape mismatch: {df_thr02.shape}"
+        for _, row in df_split.iterrows():
+            subj_id = row["ID"]
+            assert subj_id in df_meta["ID"].values, f"ID '{subj_id}' not in df_meta"
+
+            row_meta = df_meta[df_meta["ID"] == subj_id].iloc[0]
+
+            for col in ["Group", "Sex", "Age", "Education", "CDR_SB", "MMSE"]:
+                val_csv = row[col]
+                val_meta = row_meta[col]
+                equal = (
+                    pd.isna(val_csv) and pd.isna(val_meta)
+                    or val_csv == val_meta
+                )
+                assert equal, f"Mismatch for subject {subj_id} column '{col}': CSV={val_csv}, META={val_meta}"
+
+            print(f"{count}) ID {subj_id}: data correspond")
+            count += 1
+
+

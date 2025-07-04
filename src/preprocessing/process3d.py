@@ -3,9 +3,8 @@ import os
 import glob
 import numpy as np
 import nibabel as nib
-import argparse
 from tqdm import tqdm
-
+from preprocessing.config import ConfigLoader
 
 # ------------------------------------------------------------
 # Function that lists all .nii.gz files from a directory
@@ -75,26 +74,20 @@ def preprocess_fc_maps(maps_files, output_dir,mask_path, threshold = 0.2,  augme
 
 # Main block
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Preprocess FC maps with masking, thresholding and optional normalization.")
-    parser.add_argument('--input_dir', type=str, required=True, help='Path to input folder containing .nii.gz files.')
-    parser.add_argument('--output_dir', type=str, required=True, help='Path where .npy processed files will be saved.')
-    parser.add_argument('--mask_path', type=str, required=True, help='Path to GM mask .nii or .nii.gz file.')
-    parser.add_argument('--threshold', type=float, default=None,help='Optional threshold to apply to voxel values. Skip if not provided.')
-    parser.add_argument('--augmented', action='store_true',help='Flag indicating if data is organized with subfolders per subject.')
-    parser.add_argument('--normalization', action='store_true', help='Apply MinMax normalization on non-zero voxels.')
-    args = parser.parse_args()
+    loader = ConfigLoader()
+    args = loader.args
 
     # List all files
-    files = list_data(args.input_dir, augmented=args.augmented)
+    files = list_data(args["dir_FCmaps"], augmented=args["augmentation"])
 
     # Preprocess the files
     preprocess_fc_maps(
         files,
-        output_dir=args.output_dir,
-        mask_path=args.mask_path,
-        threshold=args.threshold,
-        augmented=args.augmented,
-        normalization=args.normalization
+        output_dir=args['dir_FC3Dmaps_processed'],
+        mask_path=args["gm_mask_path"],
+        threshold=args["thresholding"],
+        augmented=args["augmentation"],
+        normalization=args["normalization"]
     )
 
 

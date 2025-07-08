@@ -1,5 +1,4 @@
 # hyper_tuning.py
-# Def version
 
 import json
 import os
@@ -13,9 +12,9 @@ def is_valid_combo(params):
     model = params["model_type"]
     batch = params["batch_size"]
 
-    if model == "vgg16" and batch not in [8, 16]:
+    if model == "vgg16" and batch not in [4, 8, 16]:
         return False
-    if model in ["resnet", "densenet"] and batch not in [16, 24]:
+    if model in ["resnet", "densenet"] and batch not in [4, 16]:
         return False
     return True
 
@@ -51,7 +50,6 @@ def tuning(base_args_path, grid_path):
         params.update(combo_params)
 
         # Skip invalid combo
-
         if not is_valid_combo(params):
             continue
 

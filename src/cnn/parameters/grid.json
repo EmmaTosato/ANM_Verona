@@ -1,7 +1,7 @@
 {
   "grid": {
     "optimizer": ["adam"],
-    "batch_size": [8, 16,  24, 32],
+    "batch_size": [4, 8, 16],
     "lr": [1e-3, 1e-4],
     "weight_decay": [0.001],
     "model_type": ["resnet", "densenet", "vgg16"],
@@ -11,9 +11,9 @@
   },
 
   "experiment": {
-    "group1": "ADNI",
-    "group2": "PSP",
-    "run_id": 7,
+    "group1": "PSP",
+    "group2": "CBS",
+    "run_id": 8,
     "tuning_flag": true
   }
 }

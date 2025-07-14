@@ -6,6 +6,7 @@ def create_training_summary(params, best_fold_info, fold_accuracies, fold_val_lo
     return {
         'run id': f"run{params['run_id']}",
         'group': f"{params['group1']} vs {params['group2']}",
+        'seed': params['seed'],
         'threshold': params.get("threshold", "unspecified"),
         'best fold': best_fold_info['fold'],
         'best epoch': best_fold_info['epoch'],

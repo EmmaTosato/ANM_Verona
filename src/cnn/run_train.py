@@ -9,7 +9,7 @@ run_script_path = "/data/users/etosato/ANM_Verona/src/cnn/run.py"
 config_save_path = base_config_path
 runs_dir = "/data/users/etosato/ANM_Verona/src/cnn/runs"
 results_path = os.path.join(runs_dir, "all_training_results.csv")
-seeds = [123, 2023, 31415, 98765]
+seeds = [42, 123, 2023, 31415, 98765]
 completed_runs = []
 
 # === GET INITIAL RUN ID ===

@@ -64,23 +64,29 @@ class ConfigLoader:
                 return flat_args["yeo_02thr"]
             elif threshold == 0.1:
                 return flat_args["yeo_01thr"]
+        elif dataset_type == "parcellated":
+            return flat_args["df_parcellated"]
 
         raise ValueError(f"Invalid dataset_type={dataset_type} or threshold={threshold}")
 
     def load_all(self):
         """
-        Loads the main dataframe (df) and metadata (meta) using resolved paths.
-        Returns the args dictionary along with both dataframes.
+        Loads the main dataframe (df), metadata (meta), and returns also the input dataframe for downstream analysis.
+        Returns:
+            - args (dict): flattened config
+            - df_input (DataFrame): dataframe with features (ready for modeling)
+            - meta (DataFrame): metadata (if needed separately)
         """
         dataset_type = self.args["dataset_type"]
 
         if dataset_type == "voxel":
-            df = pd.read_pickle(self.args["df_path"])
-        elif dataset_type == "networks":
-            df = pd.read_csv(self.args["df_path"])
+            df_input = pd.read_pickle(self.args["df_path"])
+        elif dataset_type == "networks" or dataset_type == "parcellated":
+            df_input = pd.read_csv(self.args["df_path"])
         else:
             raise ValueError(f"Unsupported dataset_type: {dataset_type}")
 
         meta = pd.read_csv(self.args["df_meta"])
 
-        return self.args, df, meta
+        return self.args, df_input, meta
+

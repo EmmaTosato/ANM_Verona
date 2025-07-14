@@ -1,17 +1,41 @@
 {
   "job": {
-    "dataset_type": "voxel",
+    "dataset_type": "parcellated",
     "threshold": false,
-    "task_type": "classification",
-    "umap": true
+    "task_type": "regression",
+    "umap": false
   },
 
-  "classification": {
-    "group1": "ADNI",
-    "group2": "PSP",
-    "seeds": [42],
-    "n_folds": 5
+"classification": {
+  "tuning": true,
+  "umap_all": true,
+  "group1": "ADNI",
+  "group2": "PSP",
+  "seeds": [42, 123, 2023, 31415, 98765],
+  "n_folds": 5,
+  "SVM": {
+    "C": 10,
+    "gamma": "scale",
+    "kernel": "rbf"
   },
+  "RandomForest": {
+    "n_estimators": 100,
+    "max_depth": null,
+    "max_features": "sqrt",
+    "min_samples_split": 10
+  },
+  "GradientBoosting": {
+    "n_estimators": 300,
+    "learning_rate": 0.01,
+    "max_depth": 3,
+    "subsample": 0.8
+  },
+  "KNN": {
+    "n_neighbors": 7,
+    "weights": "uniform",
+    "metric": "euclidean"
+  }
+},
 
   "regression": {
     "target_variable": "CDR_SB",
@@ -39,20 +63,6 @@
     "normalization": true,
     "augmentation": false,
     "thresholding": "None"
-  },
-
-  "classification_grid": {
-    "SVM": {
-      "C": [0.01, 0.1, 1, 10, 100],
-      "gamma": ["scale", "auto", 0.01, 0.001],
-      "kernel": ["rbf", "linear"]
-    },
-
-    "RandomForest": {
-      "n_estimators": [100, 200, 300],
-      "max_depth": [null, 5, 10, 20, 30],
-      "min_samples_split": [2, 5]
-    }
-}
+  }
 
 }

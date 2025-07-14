@@ -70,12 +70,17 @@ def resolve_split_csv_path(split_dir, group1, group2):
 
 import os
 
-def build_output_path(base_dir, job_type, dataset_type, umap):
+def build_output_path(base_dir, job_type, dataset_type, umap, umap_all=False):
     """
-    Builds the output directory path based on base_dir, dataset_type, job_type and umap flag.
+    Builds the output directory path based on base_dir, dataset_type, job_type and umap flags.
     If job_type is empty, returns only up to 'umap' or dataset folder.
+    If both umap and umap_all are True, appends 'all' to the job_type.
     """
     if umap and not job_type:
         return os.path.join(base_dir, dataset_type, "umap")
+
     prefix = "umap_" if umap else ""
-    return os.path.join(base_dir, dataset_type, f"{prefix}{job_type}" if job_type else "")
+    suffix = "_all" if umap and umap_all else ""
+
+    return os.path.join(base_dir, dataset_type, f"{prefix}{job_type}{suffix}" if job_type else "")
+

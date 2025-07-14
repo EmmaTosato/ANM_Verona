@@ -25,6 +25,7 @@
     "df_meta": "data/dataframes/meta/df_meta.csv",
     "raw_df": "data/dataframes/fdc/raw_df.pkl",
     "df_masked": "data/dataframes/fdc/df_gm.pkl",
-    "df_masked_02": "data/dataframes/fdc/df_thr02_gm.pkl"
+    "df_masked_02": "data/dataframes/fdc/df_thr02_gm.pkl",
+    "df_parcellated": "data/dataframes/fdc/df_gm_schaefer100.csv"
   }
 }

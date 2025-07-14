@@ -41,22 +41,28 @@ def build_design_matrix(df_merged, x_input, covariates=None):
     - Uses projected features (e.g., UMAP or original features)
     - Adds dummy-coded covariates if provided
     """
-    if x_input.shape[1] == 2:
-        x = pd.DataFrame(x_input, columns=['UMAP1', 'UMAP2'])
-    else:
-        x = pd.DataFrame(x_input, columns=[f'X{i+1}' for i in range(x_input.shape[1])])
+    # Use x_input directly
+    x = x_input.copy()
 
+    # Optional renaming for 2D case
+    if x.shape[1] == 2 and list(x.columns) == [0, 1]:
+        x.columns = ['UMAP1', 'UMAP2']
+
+    # Add covariates if provided
     if covariates:
-        covar = pd.get_dummies(df_merged[covariates], drop_first=True)
-        x = pd.concat([x, covar], axis=1)
+        cov_df = df_merged[covariates]
+        cat_cols = cov_df.select_dtypes(include=['object', 'category']).columns
+        num_cols = cov_df.select_dtypes(include=['int64', 'float64']).columns
+        covar_cat = pd.get_dummies(cov_df[cat_cols], drop_first=True)
+        covar = pd.concat([cov_df[num_cols], covar_cat], axis=1)
+
+        if covar.shape[1] > 0:
+            x = pd.concat([x, covar], axis=1)
+        else:
+            print("Warning: no covariates added.")
 
     return x.astype(float)
 
-    x = pd.DataFrame(x_umap, columns=['UMAP1', 'UMAP2'])
-    if covariates:
-        covar = pd.get_dummies(df_merged[covariates], drop_first=True)
-        x = pd.concat([x, covar], axis=1)
-    return x.astype(float)
 
 def fit_ols_model(input_data, target):
     """

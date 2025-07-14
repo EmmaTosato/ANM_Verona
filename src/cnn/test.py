@@ -11,9 +11,8 @@ def evaluate(model, loader, device):
     true_labels, pred_labels = [], []
 
     with torch.no_grad():  # Disable gradient computation for efficiency
-        for x, y in loader:
-            # Move data to device (CPU or GPU)
-            x, y = x.to(device), y.to(device)
+        for batch in loader:
+            x, y = batch['X'].to(device), batch['y'].to(device)
 
             # Forward pass
             outputs = model(x)

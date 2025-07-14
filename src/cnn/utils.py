@@ -46,10 +46,9 @@ def create_tuning_summary(config_id, params, metrics):
 # Create a summary of model performance on the held-out test set
 def create_testing_summary(params, metrics):
     summary = {
-        'run id': f"run{params['run_id']}",
+        'run_id': f"run{params['run_id']}",
         'group': f"{params['group1']} vs {params['group2']}",
-        'threshold': params.get("threshold", "unspecified"),
-        "test size": round(params['test_size'], 1)
+        "seed": round(params['seed'])
     }
     metrics_rounded = {k: round(v, 3) for k, v in metrics.items() if k != "confusion_matrix"}
     summary.update(metrics_rounded)

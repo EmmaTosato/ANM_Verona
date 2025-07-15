@@ -14,7 +14,7 @@
     "weight_decay": 0.0001,
     "optimizer": "adam",
     "n_folds": 5,
-    "seed": 98765
+    "seed": 123
   },
   "fixed": {
     "label_column": "Group",
@@ -25,12 +25,12 @@
     "tuning_flag": false
   },
   "experiment": {
-    "group1": "ADNI",
+    "group1": "PSP",
     "group2": "CBS",
-    "run_id": 10,
+    "run_id": 12,
     "crossval_flag": true,
     "evaluation_flag": false,
     "ckpt_path_evaluation": "",
-    "seed": 98765
+    "seed": 123
   }
 }

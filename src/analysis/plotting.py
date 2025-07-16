@@ -146,61 +146,101 @@ def plot_actual_vs_predicted(target, predictions,
 def plot_clusters_vs_groups(x_umap, labels_dict, group_column,
                             save_path, title_prefix,
                             margin=2.0,
-                            plot_flag=True, save_flag = False,
+                            plot_flag=True, save_flag=False, title_flag=False,
                             colors_gmm=False):
+    """
+    Plots clustering results side-by-side with group labels using UMAP coordinates.
+    One row per clustering method.
+    """
     n = len(labels_dict)
     fig, axes = plt.subplots(n, 2, figsize=(12, 6 * n))
     if n == 1:
         axes = [axes]
-    x1, x2 = x_umap[:, 0], x_umap[:, 1]
-    min_val, max_val = min(x1.min(), x2.min()) - margin, max(x1.max(), x2.max()) + margin
 
-    left_colors = ['#74c476', '#f44f39', '#7BD3EA', '#fd8d3c', '#37659e','#fbbabd', '#ffdb24', '#413d7b', '#9dd569', '#e84a9b','#056c39', '#6788ee']
+    x1, x2 = x_umap[:, 0], x_umap[:, 1]
+    min_val = min(x1.min(), x2.min()) - margin
+    max_val = max(x1.max(), x2.max()) + margin
+
+    left_colors = ['#E24141', '#74c476', '#7BD3EA', '#fd8d3c', '#37659e', '#fbbabd', '#ffdb24',
+                   '#413d7b', '#9dd569', '#e84a9b', '#056c39', '#6788ee']
     right_colors = sns.color_palette("Set2")[2:] if colors_gmm else sns.color_palette("Set2")
 
     for i, (name, labels) in enumerate(labels_dict.items()):
         df_plot = pd.DataFrame({'X1': x1, 'X2': x2, 'cluster': labels, 'label': group_column}).dropna(subset=['label'])
-        sns.scatterplot(data=df_plot, x='X1', y='X2', hue='cluster', palette=left_colors, s=50, ax=axes[i][0])
-        sns.scatterplot(data=df_plot, x='X1', y='X2', hue='label', palette=right_colors, s=50, ax=axes[i][1])
 
-        axes[i][0].set_title(name)
-        axes[i][1].set_title(f"{name} - Labeling according to {group_column.name}")
+        sns.scatterplot(
+            data=df_plot, x='X1', y='X2', hue='cluster', palette=left_colors,
+            s=50, alpha=0.9, edgecolor='black', linewidth=0.5, ax=axes[i][0]
+        )
+        sns.scatterplot(
+            data=df_plot, x='X1', y='X2', hue='label', palette=right_colors,
+            s=50, alpha=0.9, edgecolor='black', linewidth=0.5, ax=axes[i][1]
+        )
+
         for ax in axes[i]:
             ax.set_xlim(min_val, max_val)
             ax.set_ylim(min_val, max_val)
+            ax.set_xlabel("UMAP 1", fontsize=12, fontweight='bold')
+            ax.set_ylabel("UMAP 2", fontsize=12, fontweight='bold')
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['bottom'].set_linewidth(1)
+            ax.spines['left'].set_linewidth(1)
+            ax.spines['bottom'].set_edgecolor('black')
+            ax.spines['left'].set_edgecolor('black')
+            ax.grid(False)
+            ax.tick_params(labelsize=11)
+            for label in ax.get_xticklabels() + ax.get_yticklabels():
+                label.set_fontweight('normal')
 
-    fig.suptitle("Clustering Results", fontsize=22, fontweight='bold')
-    fig.text(0.5, 0.92, title_prefix, fontsize=16, ha='center')
+        if title_flag:
+            axes[i][0].set_title(name, fontsize=14, fontweight='bold')
+            axes[i][1].set_title(f"{name} - Labeling by {group_column.name}", fontsize=14, fontweight='bold')
+
+    if title_flag:
+        fig.suptitle("Clustering Results", fontsize=22, fontweight='bold')
+        fig.text(0.5, 0.92, title_prefix, fontsize=16, ha='center')
 
     if save_path and save_flag:
-        fname = re.sub(r'\s+', '_', title_prefix.strip().lower()) + "_clustering.png"
+        os.makedirs(save_path, exist_ok=True)
+        fname = clean_title_string(title_prefix) + "_clustering.png"
         fig.savefig(os.path.join(save_path, fname), dpi=300, bbox_inches='tight')
+
     if plot_flag:
         plt.show()
+
     plt.close(fig)
 
-def plot_umap_embedding(x_umap,
-                        title=None, save_path=None,
-                        plot_flag=True, save_flag = False,
-                        dot_color="#d74c4c"):
-    """
-    Plots 2D UMAP embedding with optional save and display.
-    """
-    plt.figure(figsize=(6, 4))
 
+def plot_umap_embedding(labeling_umap,
+                        title=None,
+                        save_path=None,
+                        plot_flag=True,
+                        save_flag=False,
+                        title_flag=False,
+                        dot_color="#d74c4c",
+                        color_by_group=False,
+                        group_column="group",
+                        palette=None):
+    """
+    Plots 2D UMAP embedding using the 'labeling_umap' DataFrame.
+    If color_by_group is True, points are colored according to 'group_column'.
+    """
+    clean_title = re.sub(r'[\s\-]+', '_', title.strip().lower()) if title else "umap"
+
+    # --- FIRST PLOT: standard embedding ---
+    plt.figure(figsize=(6, 4))
     plt.scatter(
-        x_umap[:, 0], x_umap[:, 1],
-        s=50,
-        alpha=0.9,
+        labeling_umap["X1"], labeling_umap["X2"],
+        s=50, alpha=0.9,
         color=dot_color,
         edgecolor='black',
         linewidth=0.5
     )
-
-    plt.title(f'UMAP Embedding - {title}', fontsize=14, fontweight='bold')
+    if title_flag is not False:
+        plt.title(f'UMAP Embedding - {title}', fontsize=14, fontweight='bold')
     plt.xlabel("UMAP 1", fontsize=12, fontweight='bold')
     plt.ylabel("UMAP 2", fontsize=12, fontweight='bold')
-
     ax = plt.gca()
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -208,20 +248,59 @@ def plot_umap_embedding(x_umap,
     ax.spines['left'].set_linewidth(1)
     ax.spines['bottom'].set_edgecolor('black')
     ax.spines['left'].set_edgecolor('black')
-
-    plt.grid(False)
-    plt.xticks([])
-    plt.yticks([])
+    ax.grid(False)
+    ax.tick_params(labelsize=11)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_fontweight('normal')
 
     if save_path and save_flag:
-        clean_title = re.sub(r'[\s\-]+', '_', title.strip().lower())
-        save_file = os.path.join(save_path, f"{clean_title}_embedding.png")
-        plt.savefig(save_file, dpi=300)
-
+        file_standard = os.path.join(save_path, f"{clean_title}_embedding.png")
+        plt.savefig(file_standard, dpi=300, bbox_inches='tight')
     if plot_flag:
         plt.show()
-
     plt.close()
+
+    # --- SECOND PLOT: color by group ---
+    if color_by_group and group_column in labeling_umap.columns:
+        plt.figure(figsize=(6, 4))
+
+        if palette is None:
+            palette = sns.color_palette("Set2", labeling_umap[group_column].nunique())
+
+        sns.scatterplot(
+            data=labeling_umap,
+            x="X1", y="X2",
+            hue=group_column,
+            palette=palette,
+            s=50,
+            edgecolor='black',
+            linewidth=0.5
+        )
+        plt.legend(title=group_column, bbox_to_anchor=(1.02, 1), loc='upper left')
+        if title_flag is not False:
+            plt.title(f'UMAP Embedding - {title} (by group)', fontsize=14, fontweight='bold')
+        plt.xlabel("UMAP 1", fontsize=12, fontweight='bold')
+        plt.ylabel("UMAP 2", fontsize=12, fontweight='bold')
+        ax = plt.gca()
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_linewidth(1)
+        ax.spines['left'].set_linewidth(1)
+        ax.spines['bottom'].set_edgecolor('black')
+        ax.spines['left'].set_edgecolor('black')
+        ax.grid(False)
+        ax.tick_params(labelsize=11)
+        for label in ax.get_xticklabels() + ax.get_yticklabels():
+            label.set_fontweight('normal')
+
+        if save_path and save_flag:
+            file_colored = os.path.join(save_path, f"{clean_title}_embedding_label.png")
+            plt.savefig(file_colored, dpi=300, bbox_inches='tight')
+        if plot_flag:
+            plt.show()
+        plt.close()
+
+
 
 # === Classification Evaluation ===
 def plot_confusion_matrix(y_true, y_pred, class_names, title, save_path):

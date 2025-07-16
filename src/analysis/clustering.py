@@ -34,7 +34,7 @@ def run_clustering(x_umap):
     Returns a dictionary with clustering labels.
     """
     return {
-        "HDBSCAN": hdbscan.HDBSCAN(min_cluster_size=5).fit_predict(x_umap),
+        #"HDBSCAN": hdbscan.HDBSCAN(min_cluster_size=5).fit_predict(x_umap),
         "K-Means": KMeans(n_clusters=3, random_state=42).fit_predict(x_umap)
     }
 
@@ -49,9 +49,36 @@ def clustering_umap_pipeline(params, df_input, df_meta):
     """
     df_merged, x = x_features_return(df_input, df_meta)
 
+    # Run umap
     x_umap = run_umap(x)
-    plot_umap_embedding(x_umap, title=params['prefix'], save_path=params['path_umap'], plot_flag=params['plot_cluster'], save_flag= params['save_flag'])
 
+    labels_dict = run_clustering(x_umap)
+    labeling_umap = pd.DataFrame({
+        'ID': df_merged['ID'],
+        'Group': df_merged['Group'],
+        'X1': x_umap[:, 0],
+        'X2': x_umap[:, 1],
+        #'labels_hdb': labels_dict['HDBSCAN'],
+        'labels_km': labels_dict['K-Means'],
+        'labels_gmm_cdr': df_merged['labels_gmm_cdr']
+    })
+
+    # Plotting
+    plot_umap_embedding(
+        labeling_umap,
+        title=params['prefix'],
+        save_path=params['path_umap'],
+        plot_flag=params['plot_cluster'],
+        save_flag=params['save_flag'],
+        title_flag=params['title_flag'],
+        color_by_group= params['color_by_group'],
+        group_column= params["group_name"],
+        palette=None
+    )
+
+    print(len(labeling_umap['labels_gmm_cdr']) , " e ", len(labeling_umap['Group']))
+
+    # Plotting
     if params.get("do_evaluation"):
         clean_title = re.sub(r'[\s\-]+', '_', params['prefix'].strip().lower())
         evaluate_kmeans(x_umap, save_path=params['path_opt_cluster'], prefix=clean_title, plot_flag=params['plot_cluster'])
@@ -59,23 +86,10 @@ def clustering_umap_pipeline(params, df_input, df_meta):
         evaluate_consensus(x_umap, save_path=params['path_opt_cluster'], prefix=clean_title, plot_flag=params['plot_cluster'])
         evaluate_hdbscan(x_umap)
 
-    labels_dict = run_clustering(x_umap)
-
-    labeling_umap = pd.DataFrame({
-        'ID': df_merged['ID'],
-        'group': df_merged['Group'],
-        'X1': x_umap[:, 0],
-        'X2': x_umap[:, 1],
-        'labels_hdb': labels_dict['HDBSCAN'],
-        'labels_km': labels_dict['K-Means'],
-        'labels_gmm_cdr': df_merged['labels_gmm_cdr']
-    })
-
-
-    plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['group'], params['path_cluster'],params['prefix'] + " - Group label",
-                            plot_flag=params['plot_cluster'], save_flag = params['save_flag'])
+    plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['Group'], params['path_cluster'],params['prefix'] + " - Group label",
+                            plot_flag=params['plot_cluster'], save_flag = params['save_flag'], title_flag = params['title_flag'])
     plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['labels_gmm_cdr'], params['path_cluster'],params['prefix'] + " - GMM label",
-                            plot_flag=params['plot_cluster'], save_flag = params['save_flag'], colors_gmm=True)
+                            plot_flag=params['plot_cluster'], save_flag = params['save_flag'], title_flag = params['title_flag'], colors_gmm=True)
 
     return labeling_umap
 

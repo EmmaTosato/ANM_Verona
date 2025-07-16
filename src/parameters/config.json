@@ -1,12 +1,12 @@
 {
   "job": {
-    "dataset_type": "parcellated",
+    "dataset_type": "voxel",
     "threshold": false,
-    "task_type": "regression",
-    "umap": false
+    "task_type": "clustering",
+    "umap": true
   },
 
-"classification": {
+  "classification": {
   "tuning": true,
   "umap_all": true,
   "group1": "ADNI",
@@ -48,7 +48,8 @@
     "do_evaluation": false,
     "plot_cluster": true,
     "plot_regression": true,
-    "save_flag": true
+    "save_flag": true,
+    "title_flag": false
   },
 
   "fixed_parameters": {

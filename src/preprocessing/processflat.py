@@ -57,7 +57,6 @@ def gmm_label_cdr(df_meta):
     df_meta['labels_gmm_cdr'] = df_meta['ID'].map(full_map).astype('Int64')
     return df_meta
 
-
 def summarize_voxel_data(df_masked, threshold=None):
     """
     Generates a summary of voxel intensity statistics.

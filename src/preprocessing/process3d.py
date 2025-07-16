@@ -6,10 +6,12 @@ import nibabel as nib
 from tqdm import tqdm
 from preprocessing.config import ConfigLoader
 
-# ------------------------------------------------------------
-# Function that lists all .nii.gz files from a directory
-# ------------------------------------------------------------
+
 def list_data(input_dir, augmented=False):
+    """
+    Returns a list of all .nii.gz files in the given directory.
+    If augmented=True, searches subfolders for each subject.
+    """
     if augmented:
         files_path = sorted(glob.glob(os.path.join(input_dir, '*', '*.nii.gz')))
     else:
@@ -17,10 +19,10 @@ def list_data(input_dir, augmented=False):
 
     return files_path
 
-# ------------------------------------------------------------------------------
-# Function for preprocessing the data: loading, thresholding, masking and saving
-# ------------------------------------------------------------------------------
 def preprocess_fc_maps(maps_files, output_dir,mask_path, threshold = 0.2,  augmented=False, normalization=None):
+    """
+        Preprocess FC maps: load image, apply thresholding and masking, optional normalization, and save as .npy.
+        """
     os.makedirs(output_dir, exist_ok=True)
 
     # Load the mask
@@ -74,13 +76,14 @@ def preprocess_fc_maps(maps_files, output_dir,mask_path, threshold = 0.2,  augme
 
 # Main block
 if __name__ == "__main__":
+    # Load configuration parameters
     loader = ConfigLoader()
     args = loader.args
 
-    # List all files
+    # List input files from the specified directory
     files = list_data(args["dir_FCmaps"], augmented=args["augmentation"])
 
-    # Preprocess the files
+    # Run the preprocessing pipeline
     preprocess_fc_maps(
         files,
         output_dir=args['dir_FC3Dmaps_processed'],

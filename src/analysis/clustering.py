@@ -11,7 +11,6 @@ from sklearn.cluster import KMeans
 import hdbscan
 from preprocessing.config import ConfigLoader
 from preprocessing.processflat import x_features_return
-from analysis.umap_run import run_umap
 from analysis.clustering_evaluation import evaluate_kmeans, evaluate_gmm, evaluate_hdbscan, evaluate_consensus
 from analysis.plotting import plot_umap_embedding, plot_clusters_vs_groups
 from analysis.utils import log_to_file, reset_stdout, run_umap, build_output_path

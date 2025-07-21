@@ -9,6 +9,12 @@ from src.training.run import main_worker
 from resources import create_tuning_summary
 
 def is_valid_combo(params):
+    """
+        Check whether a given hyperparameter combination is valid.
+        In particular, enforce constraints on batch size depending on the model type,
+        to avoid GPU memory issues
+    """
+
     model = params["model_type"]
     batch = params["batch_size"]
 
@@ -19,6 +25,15 @@ def is_valid_combo(params):
     return True
 
 def tuning(base_args_path, grid_path):
+    """
+        Perform hyperparameter tuning for CNN models using grid search.
+        For each valid combination of hyperparameters:
+        - Create a configuration dictionary
+        - Launch training with k-fold cross-validation
+        - Save performance metrics and configuration info
+        - Store the summary in a cumulative CSV
+        """
+    
     # Load fixed config and hyperparameter grid
     with open(base_args_path, "r") as f:
         config = json.load(f)

@@ -4,6 +4,15 @@ import matplotlib.pyplot as plt
 
 
 def train(model, train_loader, criterion, optimizer, device):
+    """
+        Perform one epoch of training.
+
+        - Sets the model in training mode.
+        - Iterates through training data batches.
+        - Computes the forward pass and loss.
+        - Performs backpropagation and optimizer step.
+        - Accumulates total training loss to return the average at the end.
+    """
     # Set the model to training mode
     model.train()
     # Track cumulative loss
@@ -32,6 +41,14 @@ def train(model, train_loader, criterion, optimizer, device):
     return train_loss
 
 def validate(model, val_loader, criterion, device):
+    """
+        Evaluate the model on the validation set.
+
+        - Sets the model in evaluation mode.
+        - Disables gradient computation.
+        - Computes forward pass and accumulates loss and accuracy.
+        - Returns average loss and overall accuracy on the validation set.
+    """
     model.eval()  # Set the model to evaluation mode
     running_loss = 0.0
     correct = 0  # Count of correct predictions
@@ -61,6 +78,9 @@ def validate(model, val_loader, criterion, device):
     return val_loss, val_accuracy
 
 def plot_losses(train_losses, val_losses, val_accuracies=None, save_path=None, title = None):
+    """
+        Plot training/validation loss and optionally validation accuracy across epochs.
+    """
     plt.figure(figsize=(8, 5))
     # Plot training and validation loss
     plt.plot(train_losses, label='Train Loss', marker='o', color='blue')

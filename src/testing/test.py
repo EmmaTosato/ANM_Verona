@@ -7,6 +7,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 def evaluate(model, loader, device):
+    """
+        Evaluate a trained model on a test set.
+
+        - Switches the model to evaluation mode.
+        - Iterates through the dataloader without computing gradients.
+        - Applies the model to each batch and stores predicted and true labels.
+        - Returns two NumPy arrays: ground-truth labels and predicted labels.
+    """
     model.eval()  # Set the model to evaluation mode (no dropout, etc.)
     true_labels, pred_labels = [], []
 
@@ -28,6 +36,16 @@ def evaluate(model, loader, device):
 
 
 def compute_metrics(y_true, y_pred):
+    """
+        Compute classification metrics from true and predicted labels.
+
+        Returns a dictionary containing:
+        - accuracy
+        - precision
+        - recall
+        - F1 score
+        - confusion matrix
+    """
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred)
     recall = recall_score(y_true, y_pred)

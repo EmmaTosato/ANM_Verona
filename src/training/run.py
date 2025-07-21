@@ -22,6 +22,10 @@ from resources import (
 
 
 def set_seed(seed):
+    """
+    Set all random seeds for reproducibility across NumPy, Python, and PyTorch.
+    Disables backend optimizations to ensure determinism in training.
+    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -31,6 +35,14 @@ def set_seed(seed):
 
 # Trains the model and evaluates on validation set at each epoch.
 def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fold):
+    """
+        Train the model for a fixed number of epochs and validate after each epoch.
+
+        - Tracks the best model based on validation accuracy (with tie-breaker on loss)
+        - Saves the best model checkpoint
+        - Optionally saves loss/accuracy plots and per-epoch metrics
+        - Returns best metrics for summary and logging
+    """
     best_accuracy = -float('inf')
     best_val_loss = float('inf')
     best_epoch = -1
@@ -105,6 +117,18 @@ def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fo
 
 
 def main_worker(params, config_id = None ):
+    """
+        Main training and evaluation function.
+
+        Handles:
+        - Cross-validation training if `crossval_flag` is True
+        - Final test set evaluation if `evaluation_flag` is True
+        - Logging setup and redirecting output to file
+        - Model initialization, checkpoint saving, metric computation
+
+        If `tuning_flag` is True, used within grid search logic to return best fold results.
+        Otherwise, writes full training/testing summaries to CSV.
+    """
     # Handle run subdirectory
     if params.get("tuning_flag", False):
         ckpt_dir = params["runs_dir"]

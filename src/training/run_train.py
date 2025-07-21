@@ -4,10 +4,10 @@ import pandas as pd
 import subprocess
 
 # === CONFIGURATION ===
-base_config_path = "/data/users/etosato/ANM_Verona/src/cnn/parameters/config.json"
-run_script_path = "/data/users/etosato/ANM_Verona/src/cnn/run.py"
+base_config_path = "/src/cnn/parameters/config.json"
+run_script_path = "/src/cnn/training/run.py"
 config_save_path = base_config_path
-runs_dir = "/data/users/etosato/ANM_Verona/src/cnn/runs"
+runs_dir = "/src/cnn/runs"
 results_path = os.path.join(runs_dir, "all_training_results.csv")
 seeds = [42, 123, 2023, 31415, 98765]
 completed_runs = []

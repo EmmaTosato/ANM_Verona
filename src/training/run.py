@@ -14,7 +14,7 @@ from models import ResNet3D, DenseNet3D, VGG16_3D
 from train import train, validate, plot_losses
 from test import evaluate, compute_metrics, plot_confusion_matrix
 
-from utils import (
+from resources import (
     create_training_summary,
     create_testing_summary,
     resolve_split_csv_path
@@ -352,7 +352,7 @@ def main_worker(params, config_id = None ):
 
 if __name__ == '__main__':
     # Load json file
-    config_path = "parameters/config.json"
+    config_path = "../config/config.json"
 
     with open(config_path, "r") as f:
         config = json.load(f)

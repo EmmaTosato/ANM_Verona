@@ -4,11 +4,11 @@ import pandas as pd
 import subprocess
 
 # === CONFIGURATION ===
-csv_path = "/data/users/etosato/ANM_Verona/src/cnn/tuning_results/adni_psp.csv"
-base_config_path = "/data/users/etosato/ANM_Verona/src/cnn/parameters/config.json"
-tuning_results_dir = "/data/users/etosato/ANM_Verona/src/cnn/tuning_results"
-config_save_path = "/data/users/etosato/ANM_Verona/src/cnn/parameters/config.json"
-run_script_path = "/data/users/etosato/ANM_Verona/src/cnn/run.py"
+csv_path = "/src/cnn/tuning/adni_psp.csv"
+base_config_path = "/src/cnn/parameters/config.json"
+tuning_results_dir = "/src/cnn/tuning_results"
+config_save_path = "/src/cnn/parameters/config.json"
+run_script_path = "/src/cnn/training/run.py"
 completed_runs = []
 
 # === LOAD CSV ===
@@ -23,7 +23,7 @@ df = pd.read_csv(csv_path)
 #df = df[df["best_accuracy"].isin(allowed_accuracies)]
 
 # === GET INITIAL RUN ID ===
-runs_dir = "/data/users/etosato/ANM_Verona/src/cnn/runs"
+runs_dir = "/src/cnn/runs"
 existing_runs = [d for d in os.listdir(runs_dir) if d.startswith("run") and os.path.isdir(os.path.join(runs_dir, d))]
 run_ids = [int(d.replace("run", "")) for d in existing_runs]
 next_run_id = max(run_ids) + 1 if run_ids else 1
@@ -40,7 +40,7 @@ for _, row in df.iterrows():
     model_type = row["model_type"]
 
     # Build checkpoint path
-    ckpt_path = f"/data/users/etosato/ANM_Verona/src/cnn/tuning_results/tuning{tuning}/{config_name}/best_model_fold{best_fold}.pt"
+    ckpt_path = f"/src/cnn/tuning/tuning{tuning}/{config_name}/best_model_fold{best_fold}.pt"
 
     # Update config
     config = base_config.copy()
@@ -77,7 +77,7 @@ for _, row in df.iterrows():
 
     next_run_id += 1
 
-results_path = "/data/users/etosato/ANM_Verona/src/cnn/runs/all_testing_results.csv"
+results_path = "/src/cnn/runs/all_testing_results.csv"
 
 # Load
 df_results = pd.read_csv(results_path)

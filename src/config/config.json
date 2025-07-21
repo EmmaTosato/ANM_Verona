@@ -14,7 +14,7 @@
     "weight_decay": 0.0001,
     "optimizer": "adam",
     "n_folds": 5,
-    "seed": 123
+    "seed": 98765
   },
   "fixed": {
     "label_column": "Group",
@@ -27,10 +27,10 @@
   "experiment": {
     "group1": "PSP",
     "group2": "CBS",
-    "run_id": 12,
-    "crossval_flag": true,
-    "evaluation_flag": false,
-    "ckpt_path_evaluation": "",
-    "seed": 123
+    "run_id": 15,
+    "crossval_flag": false,
+    "evaluation_flag": true,
+    "ckpt_path_evaluation": "/data/users/etosato/ANM_Verona/src/cnn/runs/run15/best_model_fold1.pt",
+    "seed": 98765
   }
 }

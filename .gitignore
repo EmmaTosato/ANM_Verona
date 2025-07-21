@@ -2,6 +2,9 @@
 # Ignore data files
 data/
 
+# Ignore checkpoints
+results/
+
 # Ignore system files
 .DS_Store
 .gitattributes
@@ -12,11 +15,3 @@ data/
 # PyCharm
 .idea/
 
-# Ignore images
-output/
-
-# Ignore runs
-runs/
-
-# Ignore tuning results
-tuning_results/

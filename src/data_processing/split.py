@@ -6,6 +6,11 @@ from sklearn.model_selection import train_test_split
 import json
 
 def create_split(args):
+    """
+    Perform stratified splitting of subjects into train/test or train/val/test sets.
+    Filtering is based on two diagnostic groups, with optional exclusion of subjects.
+    The result is saved as a CSV with a 'split' column indicating the assignment.
+    """
     # Create output directory if it doesn't exist
     os.makedirs(args['output_dir'], exist_ok=True)
 
@@ -80,6 +85,7 @@ def create_split(args):
 
 
 if __name__ == '__main__':
+    """ Load config file and unpack arguments """
     config_path = "../config/split.json"
 
     with open(config_path, "r") as f:

@@ -1,0 +1,55 @@
+
+Using split file: data/dataframes/split/ADNI_CBS_splitted.csv
+
+UMAP not applied, using original features.
+
+
+SEED 42 - Running classification
+
+Running direct training for SVM
+
+Running direct training for RandomForest
+
+Running direct training for GradientBoosting
+
+Running direct training for KNN
+
+SEED 123 - Running classification
+
+Running direct training for SVM
+
+Running direct training for RandomForest
+
+Running direct training for GradientBoosting
+
+Running direct training for KNN
+
+SEED 2023 - Running classification
+
+Running direct training for SVM
+
+Running direct training for RandomForest
+
+Running direct training for GradientBoosting
+
+Running direct training for KNN
+
+SEED 31415 - Running classification
+
+Running direct training for SVM
+
+Running direct training for RandomForest
+
+Running direct training for GradientBoosting
+
+Running direct training for KNN
+
+SEED 98765 - Running classification
+
+Running direct training for SVM
+
+Running direct training for RandomForest
+
+Running direct training for GradientBoosting
+
+Running direct training for KNN

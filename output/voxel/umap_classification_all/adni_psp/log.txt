@@ -1,0 +1,15 @@
+
+Using split file: data/dataframes/split/ADNI_PSP_splitted.csv
+
+UMAP applied to entire dataset before split.
+
+
+SEED 42 - Running classification
+
+Running GridSearchCV for SVM
+
+Running GridSearchCV for RandomForest
+
+Running GridSearchCV for GradientBoosting
+
+Running GridSearchCV for KNN

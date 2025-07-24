@@ -1,49 +1,50 @@
 {
   "job": {
-    "dataset_type": "voxel",
+    "dataset_type": "networks",
     "threshold": false,
-    "task_type": "clustering",
-    "umap": true
+    "task_type": "classification",
+    "umap": false
   },
-
   "classification": {
-  "tuning": true,
-  "umap_all": true,
-  "group1": "ADNI",
-  "group2": "PSP",
-  "seeds": [42, 123, 2023, 31415, 98765],
-  "n_folds": 5,
-  "SVM": {
-    "C": 10,
-    "gamma": "scale",
-    "kernel": "rbf"
+    "tuning": false,
+    "umap_all": false,
+    "permutation_test": true,
+    "n_permutations": 100,
+    "perm_cv": 5,
+    "group1": "PSP",
+    "group2": "CBS",
+    "seeds": [
+      42,
+      123,
+      2023,
+      31415,
+      98765
+    ],
+    "n_folds": 5,
+    "RandomForest": {
+      "n_estimators": 300,
+      "max_depth": null,
+      "max_features": "sqrt",
+      "min_samples_split": 5
+    },
+    "GradientBoosting": {
+      "n_estimators": 200,
+      "learning_rate": 0.01,
+      "max_depth": 3,
+      "subsample": 0.8
+    },
+    "KNN": {
+      "n_neighbors": 3,
+      "weights": "distance",
+      "metric": "euclidean"
+    }
   },
-  "RandomForest": {
-    "n_estimators": 100,
-    "max_depth": null,
-    "max_features": "sqrt",
-    "min_samples_split": 10
-  },
-  "GradientBoosting": {
-    "n_estimators": 300,
-    "learning_rate": 0.01,
-    "max_depth": 3,
-    "subsample": 0.8
-  },
-  "KNN": {
-    "n_neighbors": 7,
-    "weights": "uniform",
-    "metric": "euclidean"
-  }
-},
-
   "regression": {
     "target_variable": "CDR_SB",
     "flag_covariates": true,
     "group_regression": false,
     "group_col": "Group"
   },
-
   "plotting": {
     "do_evaluation": false,
     "plot_cluster": true,
@@ -51,19 +52,20 @@
     "save_flag": true,
     "title_flag": false
   },
-
   "fixed_parameters": {
     "output_dir": "output/",
-    "covariates": ["Sex", "Age", "Education"],
+    "covariates": [
+      "Sex",
+      "Age",
+      "Education"
+    ],
     "y_log_transform": false,
     "color_by_group": true,
     "group_name": "Group"
   },
-
-   "processing3D": {
+  "processing3D": {
     "normalization": true,
     "augmentation": false,
     "thresholding": "None"
   }
-
 }

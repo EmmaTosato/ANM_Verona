@@ -11,7 +11,8 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.neighbors import KNeighborsClassifier
-
+from sklearn.model_selection import permutation_test_score
+import matplotlib.pyplot as plt
 from preprocessing.config import ConfigLoader
 from analysis.utils import run_umap, log_to_file, reset_stdout, resolve_split_csv_path, build_output_path
 from analysis.plotting import plot_confusion_matrix
@@ -62,18 +63,68 @@ class DataSplit:
         self.y_test = self.y_encoded[self.splits == "test"]
 
 
-def get_model_map(seed):
-    return {
-        "SVM": SVC(probability=True, random_state=seed),
+def get_model_map(seed, tuning=False):
+    model_map = {
         "RandomForest": RandomForestClassifier(random_state=seed),
         "GradientBoosting": GradientBoostingClassifier(random_state=seed),
         "KNN": KNeighborsClassifier()
     }
+    if tuning:
+        model_map["SVM"] = SVC(probability=True, random_state=seed)
+    return model_map
+
 
 def set_seed(seed):
     """Set random seed for reproducibility."""
     random.seed(seed)
     np.random.seed(seed)
+
+def run_permutation_test(model_class, param_dict, X, y, model_name, seed, save_dir, n_permutations=1000, cv_folds=5):
+    """
+    Run permutation test on a fitted model and save results incrementally to a single CSV.
+    """
+    cv = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=seed)
+    model = model_class(**param_dict)
+
+    score, perm_scores, pvalue = permutation_test_score(
+        estimator=model,
+        X=X,
+        y=y,
+        scoring="accuracy",
+        cv=cv,
+        n_permutations=n_permutations,
+        n_jobs=-1,
+        random_state=seed
+    )
+
+    result = {
+        "model": model_name,
+        "seed": seed,
+        "accuracy": round(score, 3),
+        "pvalue": round(pvalue, 5)
+    }
+
+    # Path to cumulative CSV
+    cumulative_path = os.path.join(save_dir, "permutation_results.csv")
+    df_result = pd.DataFrame([result])
+
+    # Append or write with header
+    if os.path.exists(cumulative_path):
+        df_result.to_csv(cumulative_path, mode="a", header=False, index=False)
+    else:
+        df_result.to_csv(cumulative_path, mode="w", header=True, index=False)
+
+    # Save histogram
+    plt.figure()
+    plt.hist(perm_scores, bins=20, density=True, alpha=0.7, label="Permuted scores")
+    plt.axvline(score, color="red", linestyle="--", label=f"Observed score = {score:.2f}")
+    plt.title(f"Permutation Test - {model_name} (seed {seed})\np = {pvalue:.4f}")
+    plt.xlabel("Accuracy")
+    plt.ylabel("Density")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir, f"perm_hist_{model_name}.png"))
+    plt.close()
 
 def evaluate_metrics(y_true, y_pred, y_proba=None):
     """Compute classification metrics. Include AUC if probabilities are available."""
@@ -141,7 +192,33 @@ def train_and_evaluate_model(base_model, model_name, param_dict, data: DataSplit
             save_path=os.path.join(params["path_umap_class_seed"], f"conf_matrix_test_{model_name}.png")
         )
 
+        # Run permutation test if specified
+        if params.get("permutation_test", False):
+            run_permutation_test(
+                model_class=type(base_model),
+                param_dict=param_dict,
+                X=data.x_test,
+                y=data.y_test,
+                model_name=model_name,
+                seed=seed,
+                save_dir=params["path_umap_class_seed"],
+                n_permutations=params.get("n_permutations", 1000),
+                cv_folds=params.get("perm_cv", 5)
+            )
+
+        # Get test subject IDs
+        test_ids = data.df[data.splits == "test"]["ID"].values
+
+        # Save predictions with subject IDs
+        df_preds = pd.DataFrame({
+            "ID": test_ids,
+            "Seed": params["seed"],
+            "Model": model_name,
+            "TrueLabel": data.le.inverse_transform(data.y_test),
+            "PredLabel": data.le.inverse_transform(y_pred)
+        })
         return best_model, best_params, evaluate_metrics(data.y_test, y_pred, y_proba), y_pred
+
 
 def classification_pipeline(data: DataSplit, params: dict):
     seed = params["seed"]
@@ -151,14 +228,15 @@ def classification_pipeline(data: DataSplit, params: dict):
             param_grids = json.load(f)
     else:
         param_grids = {
-            "SVM": params["SVM"],
             "RandomForest": params["RandomForest"],
             "GradientBoosting": params["GradientBoosting"],
             "KNN": params["KNN"]
         }
 
-    model_map = get_model_map(seed)
+    model_map = get_model_map(seed, tuning=params["tuning"])
+
     results = []
+    all_predictions = []
 
     for model_name, base_model in model_map.items():
         print(f"\nRunning {'GridSearchCV' if params['tuning'] else 'direct training'} for {model_name}")
@@ -172,7 +250,23 @@ def classification_pipeline(data: DataSplit, params: dict):
             result.update({f"test_{k}": round(v, 3) if isinstance(v, float) else v for k, v in metrics.items()})
             results.append(result)
 
-    return pd.DataFrame(results) if results else None
+            # Get test IDs and labels
+            test_ids = data.df[data.splits == "test"]["ID"].values
+            true_labels = data.le.inverse_transform(data.y_test)
+            pred_labels = data.le.inverse_transform(y_pred)
+
+            df_preds = pd.DataFrame({
+                "ID": test_ids,
+                "Seed": seed,
+                "Model": model_name,
+                "TrueLabel": true_labels,
+                "PredLabel": pred_labels
+            })
+            all_predictions.append(df_preds)
+
+    df_results = pd.DataFrame(results) if results else None
+    df_preds_all = pd.concat(all_predictions, ignore_index=True) if all_predictions else None
+    return df_results, df_preds_all
 
 def main_classification(params, df_input):
     group_dir = f"{params['group1'].lower()}_{params['group2'].lower()}"
@@ -184,6 +278,13 @@ def main_classification(params, df_input):
 
     log_path = os.path.join(output_dir, "log.txt")
     log_to_file(log_path)
+
+    # Path to the unified predictions file
+    out_preds = os.path.join(output_dir, "all_test_predictions.csv")
+    # Overwrite if exists from previous runs
+    if os.path.exists(out_preds):
+        os.remove(out_preds)
+    first_write = True  # flag to control header inclusion
 
     split_path = resolve_split_csv_path(params["dir_split"], params["group1"], params["group2"])
     data = DataSplit(df_input, split_path, use_full_input=params.get("umap_all", False))
@@ -210,6 +311,7 @@ def main_classification(params, df_input):
         print("UMAP not applied, using original features.\n")
 
     all_results = []
+
     for seed in params["seeds"]:
         print(f"\nSEED {seed} - Running classification")
         params["seed"] = seed
@@ -217,9 +319,14 @@ def main_classification(params, df_input):
         params["path_umap_class_seed"] = os.path.join(output_dir, f"seed_{seed}")
         os.makedirs(params["path_umap_class_seed"], exist_ok=True)
 
-        df_summary = classification_pipeline(data, params)
+        df_summary, df_preds = classification_pipeline(data, params)
+
         if df_summary is not None:
             all_results.append(df_summary)
+
+        if df_preds is not None:
+            df_preds.to_csv(out_preds, mode='a', header=first_write, index=False)
+            first_write = False  # only include header once
 
     if all_results:
         pd.concat(all_results).reset_index(drop=True).to_csv(

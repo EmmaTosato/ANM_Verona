@@ -1,7 +1,0 @@
-
-Using split file: data/dataframes/split/PSP_CBS_splitted.csv
-
-UMAP applied (fit on training only).
-
-
-SEED 42 - Running 5-fold CV + Test on holdout set: PSP vs CBS

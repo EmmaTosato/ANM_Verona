@@ -31,9 +31,6 @@ Skew:                          -1.176   Prob(JB):                      0.00586
 Kurtosis:                       3.695   Cond. No.                         191.
 ==============================================================================
 
-Notes:
-[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
-
 
 --------------------------------------------------------------------------------
 SHUFFLING REGRESSION

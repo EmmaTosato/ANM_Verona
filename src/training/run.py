@@ -33,7 +33,7 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-# Trains the model and evaluates on validation set at each epoch.
+# Trains the model and evaluates on the validation set at each epoch.
 def run_epochs(model, train_loader, val_loader, criterion, optimizer, params, fold):
     """
         Train the model for a fixed number of epochs and validate after each epoch.
@@ -123,10 +123,10 @@ def main_worker(params, config_id = None ):
         Handles:
         - Cross-validation training if `crossval_flag` is True
         - Final test set evaluation if `evaluation_flag` is True
-        - Logging setup and redirecting output to file
+        - Logging setup and redirecting output to a file
         - Model initialization, checkpoint saving, metric computation
 
-        If `tuning_flag` is True, used within grid search logic to return best fold results.
+        If `tuning_flag` is True, it is used within grid search logic to return the best fold results.
         Otherwise, writes full training/testing summaries to CSV.
     """
     # Handle run subdirectory

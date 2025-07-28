@@ -4,11 +4,11 @@ import pandas as pd
 import subprocess
 
 # === CONFIGURAZIONE ===
-csv_path = "/src/cnn/runs/all_training_results.csv"
-base_config_path = "/src/config/config.json"
+csv_path = "/data/users/etosato/ANM_Verona/results/runs/all_training_results.csv"
+base_config_path = "/data/users/etosato/ANM_Verona/src/config/config.json"
 config_save_path = base_config_path
-run_script_path = "/src/cnn/training/run.py"
-runs_dir = "/src/cnn/runs"
+run_script_path = "/data/users/etosato/ANM_Verona/src/training/run.py"
+runs_dir = "/data/users/etosato/ANM_Verona/results/runs"
 results_path = os.path.join(runs_dir, "all_testing_results.csv")
 
 # === CARICA CSV INPUT ===
@@ -30,7 +30,7 @@ else:
 for _, row in df.iterrows():
     run_id = int(row["run_id"])
     if run_id in completed_run_ids:
-        print(f"🟡 Skipping run{run_id}: already completed.")
+        print(f" Skipping run{run_id}: already completed.")
         continue
 
     best_fold = int(row["best_fold"])
@@ -68,5 +68,5 @@ for _, row in df.iterrows():
     with open(config_save_path, "w") as f:
         json.dump(config, f, indent=2)
 
-    print(f"\n✅ Launching run.py for RUN {run_id} | {group1} vs {group2} | Fold {best_fold}")
+    print(f"\nLaunching run.py for RUN {run_id} | {group1} vs {group2} | Fold {best_fold}")
     subprocess.run(["python", run_script_path])

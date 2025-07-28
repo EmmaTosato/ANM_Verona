@@ -30,7 +30,7 @@
     "run_id": 15,
     "crossval_flag": false,
     "evaluation_flag": true,
-    "ckpt_path_evaluation": "/data/users/etosato/ANM_Verona/src/cnn/runs/run15/best_model_fold1.pt",
+    "ckpt_path_evaluation": "/data/users/etosato/ANM_Verona/results/runs/run15/best_model_fold1.pt",
     "seed": 98765
   }
 }

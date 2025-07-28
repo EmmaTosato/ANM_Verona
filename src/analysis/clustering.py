@@ -63,17 +63,9 @@ def clustering_umap_pipeline(params, df_input, df_meta):
     })
 
     # Plotting
-    plot_umap_embedding(
-        labeling_umap,
-        title=params['prefix'],
-        save_path=params['path_umap'],
-        plot_flag=params['plot_cluster'],
-        save_flag=params['save_flag'],
-        title_flag=params['title_flag'],
-        color_by_group= params['color_by_group'],
-        group_column= params["group_name"],
-        palette=None
-    )
+    plot_umap_embedding(labeling_umap, title=params['prefix'], save_path=params['path_umap'],
+                        plot_flag=params['plot_cluster'], save_flag=params['save_flag'],
+                        title_flag=params['title_flag'])
 
     print(len(labeling_umap['labels_gmm_cdr']) , " e ", len(labeling_umap['Group']))
 
@@ -86,9 +78,9 @@ def clustering_umap_pipeline(params, df_input, df_meta):
         evaluate_hdbscan(x_umap)
 
     plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['Group'], params['path_cluster'],params['prefix'] + " - Group label",
-                            plot_flag=params['plot_cluster'], save_flag = params['save_flag'], title_flag = params['title_flag'])
+                            plot_flag=params['plot_cluster'], save_flag = params['save_flag'], title_flag = params['title_flag'], separated= params['separated_plots'])
     plot_clusters_vs_groups(x_umap, labels_dict, labeling_umap['labels_gmm_cdr'], params['path_cluster'],params['prefix'] + " - GMM label",
-                            plot_flag=params['plot_cluster'], save_flag = params['save_flag'], title_flag = params['title_flag'], colors_gmm=True)
+                            plot_flag=params['plot_cluster'], save_flag = params['save_flag'], title_flag = params['title_flag'], colors_gmm=True, separated= params['separated_plots'])
 
     return labeling_umap
 

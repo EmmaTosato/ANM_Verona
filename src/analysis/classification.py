@@ -137,7 +137,7 @@ def evaluate_metrics(y_true, y_pred, y_proba=None):
     }
     if y_proba is not None:
         try:
-            metrics["auc_roc"] = roc_auc_score(y_true, y_proba[:, 1])
+            metrics["auc_roc"] = (y_true, y_proba[:, 1])
         except:
             pass
     return metrics

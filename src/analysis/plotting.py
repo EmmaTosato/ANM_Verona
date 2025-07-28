@@ -147,10 +147,10 @@ def plot_clusters_vs_groups(x_umap, labels_dict, group_column,
                             save_path, title_prefix,
                             margin=2.0,
                             plot_flag=True, save_flag=False, title_flag=False,
-                            colors_gmm=False):
+                            colors_gmm=False, separated=False):
     """
     Plots clustering results side-by-side with group labels using UMAP coordinates.
-    One row per clustering method.
+    Also generates separate plots for cluster and group if 'separated' is True.
     """
     n = len(labels_dict)
     fig, axes = plt.subplots(n, 2, figsize=(12, 6 * n))
@@ -168,13 +168,15 @@ def plot_clusters_vs_groups(x_umap, labels_dict, group_column,
     for i, (name, labels) in enumerate(labels_dict.items()):
         df_plot = pd.DataFrame({'X1': x1, 'X2': x2, 'cluster': labels, 'label': group_column}).dropna(subset=['label'])
 
+        # Left subplot: by cluster
         sns.scatterplot(
             data=df_plot, x='X1', y='X2', hue='cluster', palette=left_colors,
-            s=50, alpha=0.9, edgecolor='black', linewidth=0.5, ax=axes[i][0]
+            s=80, alpha=0.9, edgecolor='black', linewidth=0.5, ax=axes[i][0]
         )
+        # Right subplot: by group
         sns.scatterplot(
             data=df_plot, x='X1', y='X2', hue='label', palette=right_colors,
-            s=50, alpha=0.9, edgecolor='black', linewidth=0.5, ax=axes[i][1]
+            s=80, alpha=0.9, edgecolor='black', linewidth=0.5, ax=axes[i][1]
         )
 
         for ax in axes[i]:
@@ -197,6 +199,64 @@ def plot_clusters_vs_groups(x_umap, labels_dict, group_column,
             axes[i][0].set_title(name, fontsize=14, fontweight='bold')
             axes[i][1].set_title(f"{name} - Labeling by {group_column.name}", fontsize=14, fontweight='bold')
 
+        # ---------- Separate plots ----------
+        if separated:
+            fig_c, ax_c = plt.subplots(figsize=(8, 5))
+            sns.scatterplot(
+                data=df_plot, x="X1", y="X2", hue="cluster", palette=left_colors,
+                s=110, alpha=0.9, edgecolor='black', linewidth=0.6, ax=ax_c
+            )
+            ax_c.set_xlabel("UMAP 1", fontsize=14, fontweight='bold')
+            ax_c.set_ylabel("UMAP 2", fontsize=14, fontweight='bold')
+            ax_c.spines['top'].set_visible(False)
+            ax_c.spines['right'].set_visible(False)
+            ax_c.spines['bottom'].set_linewidth(1.5)
+            ax_c.spines['left'].set_linewidth(1.5)
+            ax_c.spines['bottom'].set_edgecolor('black')
+            ax_c.spines['left'].set_edgecolor('black')
+            ax_c.tick_params(labelsize=12)
+            ax_c.grid(False)
+
+            for label in ax_c.get_xticklabels() + ax_c.get_yticklabels():
+                label.set_fontweight('bold')
+            if title_flag:
+                ax_c.set_title(f"{name} - Cluster view", fontsize=14, fontweight='bold')
+            if save_flag and save_path:
+                fname = clean_title_string(f"{title_prefix}_{name}_cluster") + ".png"
+                fig_c.savefig(os.path.join(save_path, fname), dpi=300, bbox_inches='tight')
+            if plot_flag:
+                plt.show()
+            plt.close(fig_c)
+
+            fig_g, ax_g = plt.subplots(figsize=(8, 5))
+            sns.scatterplot(
+                data=df_plot, x="X1", y="X2", hue="label", palette=right_colors,
+                s=110, alpha=0.9, edgecolor='black', linewidth=0.6, ax=ax_g
+            )
+
+            ax_g.set_xlabel("UMAP 1", fontsize=14, fontweight='bold')
+            ax_g.set_ylabel("UMAP 2", fontsize=14, fontweight='bold')
+            ax_g.spines['top'].set_visible(False)
+            ax_g.spines['right'].set_visible(False)
+            ax_g.spines['bottom'].set_linewidth(1.5)
+            ax_g.spines['left'].set_linewidth(1.5)
+            ax_g.spines['bottom'].set_edgecolor('black')
+            ax_g.spines['left'].set_edgecolor('black')
+            ax_g.tick_params(labelsize=12)
+            ax_g.grid(False)
+
+            for label in ax_g.get_xticklabels() + ax_g.get_yticklabels():
+                label.set_fontweight('bold')
+            if title_flag:
+                ax_g.set_title(f"{name} - Group view", fontsize=14, fontweight='bold')
+            if save_flag and save_path:
+                fname = clean_title_string(f"{title_prefix}") + ".png"
+                fig_g.savefig(os.path.join(save_path, fname), dpi=300, bbox_inches='tight')
+            if plot_flag:
+                plt.show()
+            plt.close(fig_g)
+
+    # ----- Final combined plot -----
     if title_flag:
         fig.suptitle("Clustering Results", fontsize=22, fontweight='bold')
         fig.text(0.5, 0.92, title_prefix, fontsize=16, ha='center')
@@ -219,20 +279,16 @@ def plot_umap_embedding(labeling_umap,
                         save_flag=False,
                         title_flag=False,
                         dot_color="#d74c4c",
-                        color_by_group=False,
-                        group_column="group",
-                        palette=None):
+                        ):
     """
     Plots 2D UMAP embedding using the 'labeling_umap' DataFrame.
-    If color_by_group is True, points are colored according to 'group_column'.
     """
     clean_title = re.sub(r'[\s\-]+', '_', title.strip().lower()) if title else "umap"
 
-    # --- FIRST PLOT: standard embedding ---
     plt.figure(figsize=(6, 4))
     plt.scatter(
         labeling_umap["X1"], labeling_umap["X2"],
-        s=50, alpha=0.9,
+        s=80, alpha=0.9,
         color=dot_color,
         edgecolor='black',
         linewidth=0.5
@@ -260,62 +316,62 @@ def plot_umap_embedding(labeling_umap,
         plt.show()
     plt.close()
 
-    # --- SECOND PLOT: color by group ---
-    if color_by_group and group_column in labeling_umap.columns:
-        plt.figure(figsize=(6, 4))
-
-        if palette is None:
-            palette = sns.color_palette("Set2", labeling_umap[group_column].nunique())
-
-        sns.scatterplot(
-            data=labeling_umap,
-            x="X1", y="X2",
-            hue=group_column,
-            palette=palette,
-            s=50,
-            edgecolor='black',
-            linewidth=0.5
-        )
-        plt.legend(title=group_column, bbox_to_anchor=(1.02, 1), loc='upper left')
-        if title_flag is not False:
-            plt.title(f'UMAP Embedding - {title} (by group)', fontsize=14, fontweight='bold')
-        plt.xlabel("UMAP 1", fontsize=12, fontweight='bold')
-        plt.ylabel("UMAP 2", fontsize=12, fontweight='bold')
-        ax = plt.gca()
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['bottom'].set_linewidth(1)
-        ax.spines['left'].set_linewidth(1)
-        ax.spines['bottom'].set_edgecolor('black')
-        ax.spines['left'].set_edgecolor('black')
-        ax.grid(False)
-        ax.tick_params(labelsize=11)
-        for label in ax.get_xticklabels() + ax.get_yticklabels():
-            label.set_fontweight('normal')
-
-        if save_path and save_flag:
-            file_colored = os.path.join(save_path, f"{clean_title}_embedding_label.png")
-            plt.savefig(file_colored, dpi=300, bbox_inches='tight')
-        if plot_flag:
-            plt.show()
-        plt.close()
-
-
 
 # === Classification Evaluation ===
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+from sklearn.metrics import confusion_matrix
+import matplotlib.patches as patches
+
+
 def plot_confusion_matrix(y_true, y_pred, class_names, title, save_path):
     """
-    Plots and saves a confusion matrix.
+    Plots a stylized confusion matrix with enhanced readability and thick external border.
     """
-    plt.figure(figsize=(5, 4))
-    sns.heatmap(
-        confusion_matrix(y_true, y_pred),
-        annot=True, fmt='d', cmap="Blues",
-        xticklabels=class_names, yticklabels=class_names
+    cm = confusion_matrix(y_true, y_pred)
+
+    fig, ax = plt.subplots(figsize=(5, 4))
+    heatmap = sns.heatmap(
+        cm, annot=True, fmt='d', cmap="Blues", cbar=True,
+        xticklabels=class_names, yticklabels=class_names,
+        linewidths=1, linecolor='black', ax=ax,
+        annot_kws={"size": 20, "weight": "bold"},
     )
-    plt.xlabel("Predicted")
-    plt.ylabel("True")
-    plt.title(title)
+
+    # Axis labels with spacing
+    ax.set_xlabel("Predicted", fontsize=20, fontweight='bold', labelpad=15)
+    ax.set_ylabel("True", fontsize=20, fontweight='bold', labelpad=15)
+    ax.set_title(title, fontsize=22, fontweight='bold')
+
+    # Enlarge colorbar tick labels
+    cbar = heatmap.collections[0].colorbar
+    cbar.ax.tick_params(labelsize=14)
+    for label in cbar.ax.get_yticklabels():
+        label.set_fontweight('bold')
+
+
+    # Tick labels styling
+    ax.tick_params(axis='both', labelsize=18)
+    ax.set_xticklabels(class_names, fontsize=18, fontweight='bold')
+    ax.set_yticklabels(class_names, fontsize=18, fontweight='bold', rotation=0)
+
+    # Add THICK outer border as a rectangle
+    rows, cols = cm.shape
+    rect = patches.Rectangle(
+        (0, 0), cols, rows,
+        linewidth=4.5, edgecolor='black', facecolor='none'
+    )
+    ax.add_patch(rect)
+
     plt.tight_layout()
-    plt.savefig(save_path)
-    plt.close()
+    plt.show()
+
+    # To save the figure instead of showing it, uncomment the line below:
+    # plt.savefig(save_path, dpi=300)
+    # plt.close()
+
+
+
+
+

@@ -1,9 +1,9 @@
 {
   "job": {
-    "dataset_type": "networks",
+    "dataset_type": "voxel",
     "threshold": false,
-    "task_type": "classification",
-    "umap": false
+    "task_type": "clustering",
+    "umap": true
   },
   "classification": {
     "tuning": false,
@@ -50,7 +50,8 @@
     "plot_cluster": true,
     "plot_regression": true,
     "save_flag": true,
-    "title_flag": false
+    "title_flag": false,
+    "separated_plots": true
   },
   "fixed_parameters": {
     "output_dir": "output/",

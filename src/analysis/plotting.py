@@ -23,8 +23,22 @@ def plot_ols_diagnostics(target, predictions, residuals,
                          title, save_path=None,
                          plot_flag=True, save_flag=False,
                          color_by_group=False, group_labels=None):
-    title_font = FontProperties(family="DejaVu Sans", weight='bold', size=14)
-    label_font = FontProperties(family="DejaVu Sans", weight='bold', size=12)
+    """
+    Plots OLS diagnostics (True vs Predicted) with optional group coloring and uniform formatting.
+    """
+    def _format_axes(ax, xlabel="True Score", ylabel="Predicted Score", fontsize=18):
+        ax.set_xlabel(xlabel, fontsize=fontsize, fontweight='bold', labelpad=18)
+        ax.set_ylabel(ylabel, fontsize=fontsize, fontweight='bold', labelpad=18)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_linewidth(1.0)
+        ax.spines['left'].set_linewidth(1.0)
+        ax.spines['bottom'].set_edgecolor('black')
+        ax.spines['left'].set_edgecolor('black')
+        ax.tick_params(labelsize=14)
+        ax.grid(False)
+        for label in ax.get_xticklabels() + ax.get_yticklabels():
+            label.set_fontweight('bold')
 
     if color_by_group and group_labels is not None:
         df_plot = pd.DataFrame({
@@ -36,8 +50,8 @@ def plot_ols_diagnostics(target, predictions, residuals,
 
         x_min, x_max = df_plot['target'].min(), df_plot['target'].max()
         y_min, y_max = df_plot['predictions'].min(), df_plot['predictions'].max()
-        axis_min = min(x_min, y_min)
-        axis_max = max(x_max, y_max)
+        axis_min = min(x_min, y_min) - 1
+        axis_max = max(x_max, y_max) + 1
 
         g = sns.lmplot(
             data=df_plot,
@@ -47,75 +61,74 @@ def plot_ols_diagnostics(target, predictions, residuals,
             palette="Set2",
             height=6,
             aspect=1,
-            scatter_kws=dict(s=100, alpha=0.6, edgecolor="black", linewidths=1),
-            line_kws=dict(linewidth=2.2),
+            scatter_kws=dict(s=110, alpha=0.9, edgecolor="black", linewidths=0.6),
+            line_kws=dict(linewidth=2.0),
             ci=95
         )
 
-        g.set(xlim=(axis_min - 1, axis_max + 1), ylim=(axis_min - 1, axis_max + 1))
+        g.set(xlim=(axis_min, axis_max), ylim=(axis_min, axis_max))
         for ax in g.axes.flat:
             ax.set_aspect('equal', adjustable='box')
-            ax.tick_params(labelsize=11)
-            ax.grid(False)
-            for label in ax.get_xticklabels() + ax.get_yticklabels():
-                label.set_fontweight('normal')
-            ax.set_xlabel("True", fontproperties=label_font)
-            ax.set_ylabel("Predicted", fontproperties=label_font)
-
+            _format_axes(ax)
             for coll in ax.collections:
                 if isinstance(coll, mcoll.PolyCollection):
                     coll.set_alpha(0.2)
 
-        g.fig.suptitle("OLS True vs Predicted", fontproperties=title_font, y=1.02)
+        g.fig.suptitle("OLS True vs Predicted", fontsize=20, fontweight='bold', y=1.02)
 
-        leg = g.ax.get_legend()
+        leg = g._legend
         if leg is not None:
-            leg.set_title("Group")
-            leg.set_bbox_to_anchor((1.01, 1.02))
+            leg.set_title("Group", prop={'weight': 'bold', 'size': 16})
+            for text in leg.texts:
+                text.set_fontsize(16)
             leg.get_frame().set_facecolor("white")
             leg.get_frame().set_edgecolor("black")
-            leg.get_frame().set_linewidth(1)
+            leg.get_frame().set_linewidth(0)
 
         if save_path and save_flag:
-            filename = f"{clean_title_string(title)}_diagnostics_labelled.png"
-            g.savefig(os.path.join(save_path, filename), dpi=300, bbox_inches='tight', pad_inches=0.05)
+            fname = clean_title_string(title) + "_diagnostics_labelled.png"
+            g.savefig(os.path.join(save_path, fname), dpi=300, bbox_inches='tight', pad_inches=0.05)
 
         if plot_flag:
             plt.show()
 
         plt.close()
 
-    fig, ax = plt.subplots(figsize=(7, 6))
+    else:
+        fig, ax = plt.subplots(figsize=(7, 6))
 
-    sns.scatterplot(x=target, y=predictions, ax=ax, color='#61bdcd',
-                    edgecolor='black', alpha=0.8, s=70, linewidth=0.9)
-    ax.plot([target.min(), target.max()], [target.min(), target.max()], '--', color='gray')
-    ax.set_title("OLS True vs Predicted", fontproperties=title_font)
-    ax.set_xlabel("True", fontproperties=label_font)
-    ax.set_ylabel("Predicted", fontproperties=label_font)
+        sns.scatterplot(x=target, y=predictions, ax=ax,
+                        color='#61bdcd', edgecolor='black', alpha=0.9, s=110, linewidth=0.6)
+        ax.plot([target.min(), target.max()], [target.min(), target.max()],
+                '--', color='gray', linewidth=1.5)
 
-    for label in ax.get_xticklabels() + ax.get_yticklabels():
-        label.set_fontweight('normal')
+        _format_axes(ax)
+        ax.set_title("OLS True vs Predicted", fontsize=18, fontweight='bold', pad=10)
+        ax.set_aspect('equal', adjustable='box')
 
-    plt.tight_layout()
+        plt.tight_layout()
 
-    if save_path:
-        filename = f"{clean_title_string(title)}_diagnostics.png"
-        plt.savefig(os.path.join(save_path, filename), dpi=300)
+        if save_path and save_flag:
+            fname = clean_title_string(title) + "_diagnostics.png"
+            plt.savefig(os.path.join(save_path, fname), dpi=300, bbox_inches='tight')
 
-    if plot_flag:
-        plt.show()
+        if plot_flag:
+            plt.show()
 
-    plt.close()
+        plt.close()
+
 
 def plot_actual_vs_predicted(target, predictions,
                              title, save_path=None,
-                             plot_flag=False, save_flag = False):
-    title_font = FontProperties(family="DejaVu Sans", weight='bold', size=14)
-    label_font = FontProperties(family="DejaVu Sans", weight='bold', size=12)
+                             plot_flag=False, save_flag=False):
+    """
+    Plots histograms of actual vs predicted values with consistent visual styling.
+    """
+    title_font = FontProperties(family="DejaVu Sans", weight='bold', size=20)
+    label_font = FontProperties(family="DejaVu Sans", weight='bold', size=18)
 
     bins = np.arange(min(target), max(target) + 0.5, 0.5)
-    fig, axs = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+    fig, axs = plt.subplots(1, 2, figsize=(14, 5), sharey=True)
 
     axs[0].hist(target, bins=bins, color='#61bdcd', edgecolor='black', alpha=0.85)
     axs[0].set_title('Actual Distribution', fontproperties=title_font)
@@ -128,8 +141,16 @@ def plot_actual_vs_predicted(target, predictions,
     axs[1].set_ylabel("Count", fontproperties=label_font)
 
     for ax in axs:
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_linewidth(1.0)
+        ax.spines['left'].set_linewidth(1.0)
+        ax.spines['bottom'].set_edgecolor('black')
+        ax.spines['left'].set_edgecolor('black')
+        ax.tick_params(labelsize=12)
+        ax.grid(False)
         for label in ax.get_xticklabels() + ax.get_yticklabels():
-            label.set_fontweight('normal')
+            label.set_fontweight('bold')
 
     plt.tight_layout()
 
@@ -142,6 +163,7 @@ def plot_actual_vs_predicted(target, predictions,
 
     plt.close()
 
+
 # === UMAP & Clustering Plots ===
 def plot_clusters_vs_groups(x_umap, labels_dict, group_column,
                             save_path, title_prefix,
@@ -152,8 +174,22 @@ def plot_clusters_vs_groups(x_umap, labels_dict, group_column,
     Plots clustering results side-by-side with group labels using UMAP coordinates.
     Also generates separate plots for cluster and group if 'separated' is True.
     """
+    def _format_umap_axes(ax, xlabel="UMAP 1", ylabel="UMAP 2", fontsize=14):
+        ax.set_xlabel(xlabel, fontsize=fontsize, fontweight='bold')
+        ax.set_ylabel(ylabel, fontsize=fontsize, fontweight='bold')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_linewidth(1.0)
+        ax.spines['left'].set_linewidth(1.0)
+        ax.spines['bottom'].set_edgecolor('black')
+        ax.spines['left'].set_edgecolor('black')
+        ax.tick_params(labelsize=14)
+        ax.grid(False)
+        for label in ax.get_xticklabels() + ax.get_yticklabels():
+            label.set_fontweight('bold')
+
     n = len(labels_dict)
-    fig, axes = plt.subplots(n, 2, figsize=(12, 6 * n))
+    fig, axes = plt.subplots(n, 2, figsize=(14, 6 * n))
     if n == 1:
         axes = [axes]
 
@@ -173,88 +209,62 @@ def plot_clusters_vs_groups(x_umap, labels_dict, group_column,
             data=df_plot, x='X1', y='X2', hue='cluster', palette=left_colors,
             s=80, alpha=0.9, edgecolor='black', linewidth=0.5, ax=axes[i][0]
         )
+
         # Right subplot: by group
         sns.scatterplot(
             data=df_plot, x='X1', y='X2', hue='label', palette=right_colors,
             s=80, alpha=0.9, edgecolor='black', linewidth=0.5, ax=axes[i][1]
         )
 
+        for ax_, title_ in zip(axes[i], ['Cluster', 'Label']):
+            leg = ax_.get_legend()
+            if leg is not None:
+                leg.set_title(title_, prop={'weight': 'bold', 'size': 16})
+                for text in leg.get_texts():
+                    text.set_fontsize(16)
+                    text.set_fontweight('regular')
+                leg.get_frame().set_facecolor("white")
+                leg.get_frame().set_edgecolor("black")
+                leg.get_frame().set_linewidth(0)
+
         for ax in axes[i]:
             ax.set_xlim(min_val, max_val)
             ax.set_ylim(min_val, max_val)
-            ax.set_xlabel("UMAP 1", fontsize=12, fontweight='bold')
-            ax.set_ylabel("UMAP 2", fontsize=12, fontweight='bold')
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-            ax.spines['bottom'].set_linewidth(1)
-            ax.spines['left'].set_linewidth(1)
-            ax.spines['bottom'].set_edgecolor('black')
-            ax.spines['left'].set_edgecolor('black')
-            ax.grid(False)
-            ax.tick_params(labelsize=11)
-            for label in ax.get_xticklabels() + ax.get_yticklabels():
-                label.set_fontweight('normal')
+            _format_umap_axes(ax)
 
         if title_flag:
-            axes[i][0].set_title(name, fontsize=14, fontweight='bold')
-            axes[i][1].set_title(f"{name} - Labeling by {group_column.name}", fontsize=14, fontweight='bold')
+            axes[i][0].set_title(name, fontsize=16, fontweight='bold')
+            axes[i][1].set_title(f"{name} - Labeling by {group_column.name}", fontsize=16, fontweight='bold')
 
         # ---------- Separate plots ----------
         if separated:
-            fig_c, ax_c = plt.subplots(figsize=(8, 5))
-            sns.scatterplot(
-                data=df_plot, x="X1", y="X2", hue="cluster", palette=left_colors,
-                s=110, alpha=0.9, edgecolor='black', linewidth=0.6, ax=ax_c
-            )
-            ax_c.set_xlabel("UMAP 1", fontsize=14, fontweight='bold')
-            ax_c.set_ylabel("UMAP 2", fontsize=14, fontweight='bold')
-            ax_c.spines['top'].set_visible(False)
-            ax_c.spines['right'].set_visible(False)
-            ax_c.spines['bottom'].set_linewidth(1.5)
-            ax_c.spines['left'].set_linewidth(1.5)
-            ax_c.spines['bottom'].set_edgecolor('black')
-            ax_c.spines['left'].set_edgecolor('black')
-            ax_c.tick_params(labelsize=12)
-            ax_c.grid(False)
+            for view, hue_col, palette, suffix in [("Cluster view", "cluster", left_colors, "cluster"),
+                                                   ("Group view", "label", right_colors, "group")]:
+                fig_sep, ax_sep = plt.subplots(figsize=(8, 5))
+                sns.scatterplot(
+                    data=df_plot, x="X1", y="X2", hue=hue_col, palette=palette,
+                    s=110, alpha=0.9, edgecolor='black', linewidth=0.6, ax=ax_sep
+                )
 
-            for label in ax_c.get_xticklabels() + ax_c.get_yticklabels():
-                label.set_fontweight('bold')
-            if title_flag:
-                ax_c.set_title(f"{name} - Cluster view", fontsize=14, fontweight='bold')
-            if save_flag and save_path:
-                fname = clean_title_string(f"{title_prefix}_{name}_cluster") + ".png"
-                fig_c.savefig(os.path.join(save_path, fname), dpi=300, bbox_inches='tight')
-            if plot_flag:
-                plt.show()
-            plt.close(fig_c)
+                leg = ax_sep.get_legend()
+                if leg is not None:
+                    leg.set_title(hue_col.capitalize(), prop={'weight': 'bold', 'size': 16})
+                    for text in leg.get_texts():
+                        text.set_fontsize(16)
+                        text.set_fontweight('regular')
+                    leg.get_frame().set_facecolor("white")
+                    leg.get_frame().set_edgecolor("black")
+                    leg.get_frame().set_linewidth(0)
 
-            fig_g, ax_g = plt.subplots(figsize=(8, 5))
-            sns.scatterplot(
-                data=df_plot, x="X1", y="X2", hue="label", palette=right_colors,
-                s=110, alpha=0.9, edgecolor='black', linewidth=0.6, ax=ax_g
-            )
-
-            ax_g.set_xlabel("UMAP 1", fontsize=14, fontweight='bold')
-            ax_g.set_ylabel("UMAP 2", fontsize=14, fontweight='bold')
-            ax_g.spines['top'].set_visible(False)
-            ax_g.spines['right'].set_visible(False)
-            ax_g.spines['bottom'].set_linewidth(1.5)
-            ax_g.spines['left'].set_linewidth(1.5)
-            ax_g.spines['bottom'].set_edgecolor('black')
-            ax_g.spines['left'].set_edgecolor('black')
-            ax_g.tick_params(labelsize=12)
-            ax_g.grid(False)
-
-            for label in ax_g.get_xticklabels() + ax_g.get_yticklabels():
-                label.set_fontweight('bold')
-            if title_flag:
-                ax_g.set_title(f"{name} - Group view", fontsize=14, fontweight='bold')
-            if save_flag and save_path:
-                fname = clean_title_string(f"{title_prefix}") + ".png"
-                fig_g.savefig(os.path.join(save_path, fname), dpi=300, bbox_inches='tight')
-            if plot_flag:
-                plt.show()
-            plt.close(fig_g)
+                _format_umap_axes(ax_sep)
+                if title_flag:
+                    ax_sep.set_title(f"{name} - {view}", fontsize=16, fontweight='bold')
+                if save_flag and save_path:
+                    fname = clean_title_string(f"{title_prefix}_{name}_{suffix}") + ".png"
+                    fig_sep.savefig(os.path.join(save_path, fname), dpi=300, bbox_inches='tight')
+                if plot_flag:
+                    plt.show()
+                plt.close(fig_sep)
 
     # ----- Final combined plot -----
     if title_flag:
@@ -270,6 +280,7 @@ def plot_clusters_vs_groups(x_umap, labels_dict, group_column,
         plt.show()
 
     plt.close(fig)
+
 
 
 def plot_umap_embedding(labeling_umap,
@@ -300,8 +311,8 @@ def plot_umap_embedding(labeling_umap,
     ax = plt.gca()
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.spines['bottom'].set_linewidth(1)
-    ax.spines['left'].set_linewidth(1)
+    ax.spines['bottom'].set_linewidth(1.0)
+    ax.spines['left'].set_linewidth(1.0)
     ax.spines['bottom'].set_edgecolor('black')
     ax.spines['left'].set_edgecolor('black')
     ax.grid(False)
@@ -342,7 +353,7 @@ def plot_confusion_matrix(y_true, y_pred, class_names, title, save_path):
     # Axis labels with spacing
     ax.set_xlabel("Predicted", fontsize=20, fontweight='bold', labelpad=15)
     ax.set_ylabel("True", fontsize=20, fontweight='bold', labelpad=15)
-    ax.set_title(title, fontsize=22, fontweight='bold')
+    ax.set_title(title, fontsize=22, fontweight='bold', pad=20)
 
     # Enlarge colorbar tick labels
     cbar = heatmap.collections[0].colorbar
@@ -365,11 +376,12 @@ def plot_confusion_matrix(y_true, y_pred, class_names, title, save_path):
     ax.add_patch(rect)
 
     plt.tight_layout()
-    plt.show()
 
-    # To save the figure instead of showing it, uncomment the line below:
-    # plt.savefig(save_path, dpi=300)
-    # plt.close()
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0.1)
+
+    plt.show()
+    plt.close()
 
 
 

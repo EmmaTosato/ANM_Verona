@@ -1,10 +1,9 @@
 
-=== Group by Group - CBS ===
-Dataframe shape after merge: (42, 161829)
-Meta columns: 12
-Feature matrix shape: (42, 161817) 
-
-Running UMAP...
+-------------------- Dataset Info --------------------
+Meta columns (Labels and Covariates):       10
+Feature matrix shape (X):                (42, 161817)
+Complete dataframe shape after merge:    (42, 161827)
+-------------------------------------------------------
 
 OLS REGRESSION SUMMARY
                             OLS Regression Results                            
@@ -12,8 +11,8 @@ OLS REGRESSION SUMMARY
 Dep. Variable:                 CDR_SB   R-squared:                       0.307
 Model:                            OLS   Adj. R-squared:                  0.211
 Method:                 Least Squares   F-statistic:                     3.194
-Date:                Thu, 12 Jun 2025   Prob (F-statistic):             0.0173
-Time:                        16:09:10   Log-Likelihood:                -108.33
+Date:                Thu, 04 Sep 2025   Prob (F-statistic):             0.0173
+Time:                        09:37:17   Log-Likelihood:                -108.33
 No. Observations:                  42   AIC:                             228.7
 Df Residuals:                      36   BIC:                             239.1
 Df Model:                           5                                         
@@ -39,30 +38,18 @@ Notes:
 [2] The condition number is large, 1.11e+03. This might indicate that there are
 strong multicollinearity or other numerical problems.
 
-
---------------------------------------------------------------------------------
 SHUFFLING REGRESSION
---------------------------------------------------------------------------------
-R² real:      0.3073
-R² shuffled:  0.1235
-Empirical p:  0.0300
+R^2 real: 0.3073 | shuffled mean: 0.1235 | p-value: 0.0300
 
-
---------------------------------------------------------------------------------
-RMSE BY DIAGNOSTIC GROUP AND OVERALL METRICS
---------------------------------------------------------------------------------
+RMSE BY GROUP
        Mean_RMSE  Std_RMSE   N
 Group                         
 CBS         2.58      1.89  42
 
-
-MAE:  2.5841
+MAE: 2.5841
 RMSE: 3.1907
 
-
---------------------------------------------------------------------------------
-SUBJECTS RANKED BY RMSE (BEST TO WORST)
---------------------------------------------------------------------------------
+SUBJECTS SORTED BY RMSE
       ID Group  CDR_SB  Predicted CDR_SB     RMSE
 1_S_5043   CBS     2.0          1.747510 0.252490
 1_S_5094   CBS     4.0          3.428523 0.571477

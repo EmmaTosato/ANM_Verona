@@ -137,9 +137,10 @@ def evaluate_metrics(y_true, y_pred, y_proba=None):
     }
     if y_proba is not None:
         try:
-            metrics["auc_roc"] = (y_true, y_proba[:, 1])
+            auc = roc_auc_score(y_true, y_proba[:, 1])
+            metrics["auc_roc"] = auc
         except:
-            pass
+            metrics["auc_roc"] = None
     return metrics
 
 def train_and_evaluate_model(base_model, model_name, param_dict, data: DataSplit, params: dict):

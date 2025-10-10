@@ -41,10 +41,13 @@ def build_design_matrix(df_merged, x_input, covariates=None):
     - Uses projected features (e.g., UMAP or original features)
     - Adds dummy-coded covariates if provided
     """
-    # Use x_input directly
-    x = x_input.copy()
+    # Ensure input is a DataFrame
+    if isinstance(x_input, np.ndarray):
+        x = pd.DataFrame(x_input)
+    else:
+        x = x_input.copy()
 
-    # Optional renaming for 2D case
+    # Optional renaming for 2D UMAP case
     if x.shape[1] == 2 and list(x.columns) == [0, 1]:
         x.columns = ['UMAP1', 'UMAP2']
 

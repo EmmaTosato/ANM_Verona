@@ -2,7 +2,7 @@
   "job": {
     "dataset_type": "voxel",
     "threshold": false,
-    "task_type": "clustering",
+    "task_type": "regression",
     "umap": true
   },
   "classification": {
@@ -42,7 +42,7 @@
   "regression": {
     "target_variable": "CDR_SB",
     "flag_covariates": true,
-    "group_regression": false,
+    "group_regression": true,
     "group_col": "Group"
   },
   "plotting": {

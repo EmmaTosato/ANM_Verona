@@ -54,7 +54,7 @@
     "separated_plots": true
   },
   "fixed_parameters": {
-    "output_dir": "output/",
+    "output_dir": "results/ml_analysis/",
     "covariates": [
       "Sex",
       "Age",

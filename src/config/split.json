@@ -1,0 +1,21 @@
+{
+  "paths": {
+    "labels_path": "/data/users/etosato/ANM_Verona/data/labels.csv",
+    "output_dir": "/data/users/etosato/ANM_Verona/data"
+  },
+
+  "fixed":{
+    "to_exclude": [],
+    "test_size": 0.2,
+    "validation_flag": false
+  },
+
+  "split":{
+    "label_column": "Group",
+    "group1": "PSP",
+    "group2": "CBS",
+    "seed": 42
+  }
+
+}
+

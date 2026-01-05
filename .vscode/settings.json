@@ -1,7 +1,0 @@
-{
-    "python.analysis.extraPaths": [
-        "./src/cnn"
-    ],
-    "python.envFile": "${workspaceFolder}/.env"
-}
-

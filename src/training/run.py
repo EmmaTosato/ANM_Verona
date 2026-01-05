@@ -381,7 +381,7 @@ def main_worker(params, config_id = None ):
 
 if __name__ == '__main__':
     # Load json file
-    config_path = "/data/users/etosato/ANM_Verona/src/config/config.json"
+    config_path = "/data/users/etosato/ANM_Verona/src/config/cnn_config.json"
 
     with open(config_path, "r") as f:
         config = json.load(f)

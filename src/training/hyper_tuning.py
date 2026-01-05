@@ -94,6 +94,6 @@ def tuning(base_args_path, grid_path):
     results_df.to_csv(os.path.join(run_dir, "grid_results.csv"), index=False)
 
 if __name__ == '__main__':
-    base_args_path = "/src/cnn/parameters/config.json"
-    grid_path = "/src/cnn/parameters/grid.json"
+    base_args_path = "/data/users/etosato/ANM_Verona/src/config/cnn_config.json"
+    grid_path = "/data/users/etosato/ANM_Verona/src/config/cnn_grid.json"
     tuning(base_args_path, grid_path)

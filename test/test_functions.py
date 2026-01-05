@@ -7,7 +7,7 @@ from preprocessing.loading import load_metadata
 from preprocessing.loading import load_fdc_maps, load_metadata, gmm_label_cdr
 
 # Load config
-with open("src/parameters/paths.json", "r") as f:
+with open("src/config/ml_paths.json", "r") as f:
     config = json.load(f)
 
 

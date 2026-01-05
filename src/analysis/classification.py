@@ -225,7 +225,7 @@ def classification_pipeline(data: DataSplit, params: dict):
     seed = params["seed"]
 
     if params["tuning"]:
-        with open("/Users/emmatosato/Documents/PhD/ANM_Verona/src/parameters/grid.json", "r") as f:
+        with open("src/config/ml_grid.json", "r") as f:
             param_grids = json.load(f)
     else:
         param_grids = {

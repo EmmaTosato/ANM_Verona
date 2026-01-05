@@ -86,7 +86,7 @@ def create_split(args):
 
 if __name__ == '__main__':
     """ Load config file and unpack arguments """
-    config_path = "../config/split.json"
+    config_path = "../config/ml_split.json"
 
     with open(config_path, "r") as f:
         config = json.load(f)

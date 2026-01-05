@@ -4,7 +4,7 @@ import pandas as pd
 import subprocess
 
 # === CONFIGURATION ===
-base_config_path = "/src/cnn/parameters/config.json"
+base_config_path = "/data/users/etosato/ANM_Verona/src/config/cnn_config.json"
 run_script_path = "/src/cnn/training/run.py"
 config_save_path = base_config_path
 runs_dir = "/src/cnn/runs"

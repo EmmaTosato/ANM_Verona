@@ -9,7 +9,7 @@ class ConfigLoader:
     Produces a unified dictionary `args` that includes all values from config.json and paths.json,
     plus derived paths such as df_path based on dataset type and threshold.
     """
-    def __init__(self, config_path="src/parameters/config.json", paths_path="src/parameters/paths.json"):
+    def __init__(self, config_path="src/config/ml_config.json", paths_path="src/config/ml_paths.json"):
         # Load configuration and paths from JSON
         with open(config_path) as f:
             self.config = json.load(f)

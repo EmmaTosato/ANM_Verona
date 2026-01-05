@@ -1,4 +1,0 @@
-run_id,group,seed,accuracy,precision,recall,f1
-run15,PSP vs CBS,98765,0.619,0.611,0.917,0.733
-run15,PSP vs CBS,98765,0.619,0.611,0.917,0.733
-run15,PSP vs CBS,98765,0.619,0.611,0.917,0.733

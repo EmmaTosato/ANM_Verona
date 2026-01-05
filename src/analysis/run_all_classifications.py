@@ -2,7 +2,7 @@ import json
 import subprocess
 
 # Percorsi
-config_path = "/Users/emmatosato/Documents/PhD/ANM_Verona/src/parameters/config.json"
+config_path = "src/config/ml_config.json"
 script_path = "/Users/emmatosato/Documents/PhD/ANM_Verona/src/analysis/classification.py"
 
 # Combinazioni da eseguire

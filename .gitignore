@@ -33,18 +33,6 @@ env/
 conda_env/
 
 # ==========================
-# Data & Results (Heavy)
-# ==========================
-# Ignore input data
-data/
-
-# Ignore heavy training/tuning outputs
-results/runs/
-results/tuning/
-
-# Note: results/ml_analysis/ is NOT ignored (tracked)
-
-# ==========================
 # Jupyter Notebooks
 # ==========================
 .ipynb_checkpoints
@@ -69,3 +57,15 @@ results/tuning/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# ==========================
+# Data & Results (Heavy)
+# ==========================
+# Ignore input data
+data/
+
+# Ignore heavy training/tuning outputs
+results/runs/
+results/tuning/
+
+# Note: results/ml_analysis/ is NOT ignored (tracked)

@@ -98,10 +98,11 @@ def plot_confusion_matrix(conf_matrix, class_names, save_path=None, title= None)
     ax.add_patch(rect)
 
     plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0.1)
+
     plt.show()
-
-
-    plt.savefig(save_path, dpi=300)
     plt.close()
 
 

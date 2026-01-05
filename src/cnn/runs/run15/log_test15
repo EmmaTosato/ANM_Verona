@@ -1,0 +1,21 @@
+
+Using split file: /data/users/etosato/ANM_Verona/data/splitted_csv/PSP_CBS_splitted.csv
+
+===========================
+=== EVALUATION SUMMARY ====
+===========================
+Model path: /data/users/etosato/ANM_Verona/results/runs/run15/best_model_fold1.pt
+
+Model type: densenet
+Best fold: 1
+Best epoch: 19
+
+Test set size: 21
+PSP: 12 subjects
+CBS: 9 subjects
+
+Metrics on test set:
+accuracy  : 0.619
+precision : 0.611
+recall    : 0.917
+f1        : 0.733

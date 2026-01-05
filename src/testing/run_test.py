@@ -3,6 +3,13 @@ import json
 import pandas as pd
 import subprocess
 
+import os
+import subprocess
+
+env = os.environ.copy()
+env["MKL_THREADING_LAYER"] = "GNU"
+
+
 # === CONFIGURAZIONE ===
 csv_path = "/data/users/etosato/ANM_Verona/results/runs/all_training_results.csv"
 base_config_path = "/data/users/etosato/ANM_Verona/src/config/config.json"
@@ -69,4 +76,4 @@ for _, row in df.iterrows():
         json.dump(config, f, indent=2)
 
     print(f"\nLaunching run.py for RUN {run_id} | {group1} vs {group2} | Fold {best_fold}")
-    subprocess.run(["python", run_script_path])
+    subprocess.run(["python", run_script_path], env=env)

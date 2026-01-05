@@ -1,4 +1,5 @@
 # run.py
+
 import os
 import torch
 import pandas as pd
@@ -8,13 +9,17 @@ from sklearn.model_selection import StratifiedKFold
 import json
 import random
 import sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+src_path = os.path.join(project_root)  # qui ci arrivi a .../ANM_Verona/src
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 
-from datasets import FCDataset, AugmentedFCDataset
-from models import ResNet3D, DenseNet3D, VGG16_3D
+from cnn.datasets import FCDataset, AugmentedFCDataset
+from cnn.models import ResNet3D, DenseNet3D, VGG16_3D
 from train import train, validate, plot_losses
-from test import evaluate, compute_metrics, plot_confusion_matrix
+from testing.test import evaluate, compute_metrics, plot_confusion_matrix
 
-from resources import (
+from utils import (
     create_training_summary,
     create_testing_summary,
     resolve_split_csv_path
@@ -376,7 +381,7 @@ def main_worker(params, config_id = None ):
 
 if __name__ == '__main__':
     # Load json file
-    config_path = "../config/config.json"
+    config_path = "/data/users/etosato/ANM_Verona/src/config/config.json"
 
     with open(config_path, "r") as f:
         config = json.load(f)

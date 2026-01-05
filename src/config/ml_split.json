@@ -1,6 +1,6 @@
 {
   "paths": {
-    "labels_path": "/data/users/etosato/ANM_Verona/data/dataframes/meta/labels.csv",
+    "labels_path": "/data/users/etosato/ANM_Verona/resources/metadata/labels.csv",
     "output_dir": "/data/users/etosato/ANM_Verona/data"
   },
   "fixed": {

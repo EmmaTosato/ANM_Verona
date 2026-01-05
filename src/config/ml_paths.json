@@ -7,7 +7,7 @@
     "dir_dataframe": "data/dataframes",
     "dir_fdc_df": "data/dataframes/fdc",
     "dir_yeo_df": "data/dataframes/networks",
-    "dir_split": "data/dataframes/split"
+    "dir_split": "resources/split"
   },
   "masks": {
     "gm_mask_path": "utils/masks/GM_mask.nii",
@@ -22,7 +22,7 @@
     "yeo_01thr": "data/dataframes/networks/networks_thr01.csv"
   },
   "dataframes": {
-    "df_meta": "data/dataframes/meta/df_meta.csv",
+    "df_meta": "resources/metadata/df_meta.csv",
     "raw_df": "data/dataframes/fdc/raw_df.pkl",
     "df_masked": "data/dataframes/fdc/df_gm.pkl",
     "df_masked_02": "data/dataframes/fdc/df_thr02_gm.pkl",

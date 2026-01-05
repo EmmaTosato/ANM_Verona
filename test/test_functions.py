@@ -51,8 +51,8 @@ def test_load_metadata():
 
 
 def test_split_consistency():
-    split_dir = "data/dataframes/split"
-    meta_path = "data/dataframes/meta/df_meta.csv"
+    split_dir = "resources/split"
+    meta_path = "resources/metadata/df_meta.csv"
     df_meta = pd.read_csv(meta_path)
 
     count = 1

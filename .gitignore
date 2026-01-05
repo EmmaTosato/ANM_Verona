@@ -1,13 +1,11 @@
-# NOTE: this .gitignore is local-only and removed from tracking
-# Ignore data files
+# Ignore input data 
 data/
 
-# Ignore checkpoints
+# Ignore  checkpoints
 results/
 
 # Ignore system files
 .DS_Store
-.gitattributes
 
 # Ignore log files
 *.iml

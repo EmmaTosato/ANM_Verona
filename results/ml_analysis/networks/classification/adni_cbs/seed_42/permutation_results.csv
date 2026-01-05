@@ -1,0 +1,13 @@
+model,seed,accuracy,pvalue
+RandomForest,42,0.67,0.17822
+GradientBoosting,42,0.63,0.28713
+KNN,42,0.59,0.50495
+RandomForest,42,0.67,0.16832
+GradientBoosting,42,0.63,0.26733
+KNN,42,0.59,0.50495
+RandomForest,42,0.67,0.17822
+GradientBoosting,42,0.63,0.25743
+KNN,42,0.59,0.50495
+RandomForest,42,0.67,0.20792
+GradientBoosting,42,0.63,0.28713
+KNN,42,0.59,0.50495

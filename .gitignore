@@ -2,7 +2,8 @@
 data/
 
 # Ignore  checkpoints
-results/
+results/runs/
+results/tuning/
 
 # Ignore system files
 .DS_Store

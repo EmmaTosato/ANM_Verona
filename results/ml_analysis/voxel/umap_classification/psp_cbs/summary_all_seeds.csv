@@ -1,0 +1,21 @@
+model,seed,best_params,test_accuracy,test_precision,test_recall,test_f1,test_auc_roc
+SVM,42,"{'C': 100, 'gamma': 'auto', 'kernel': 'rbf'}",0.619,0.644,0.639,0.618,0.667
+RandomForest,42,"{'n_estimators': 100, 'max_depth': None, 'max_features': 'sqrt', 'min_samples_split': 2}",0.476,0.519,0.514,0.456,0.495
+GradientBoosting,42,"{'n_estimators': 300, 'learning_rate': 0.05, 'max_depth': 7, 'subsample': 0.8}",0.476,0.5,0.5,0.471,0.583
+KNN,42,"{'n_neighbors': 3, 'weights': 'distance', 'metric': 'manhattan'}",0.571,0.558,0.556,0.555,0.556
+SVM,123,"{'C': 100, 'gamma': 'auto', 'kernel': 'rbf'}",0.619,0.644,0.639,0.618,0.333
+RandomForest,123,"{'n_estimators': 100, 'max_depth': None, 'max_features': 'sqrt', 'min_samples_split': 2}",0.476,0.519,0.514,0.456,0.644
+GradientBoosting,123,"{'n_estimators': 300, 'learning_rate': 0.05, 'max_depth': 7, 'subsample': 0.8}",0.476,0.5,0.5,0.471,0.574
+KNN,123,"{'n_neighbors': 3, 'weights': 'distance', 'metric': 'manhattan'}",0.571,0.558,0.556,0.555,0.556
+SVM,2023,"{'C': 100, 'gamma': 'auto', 'kernel': 'rbf'}",0.619,0.644,0.639,0.618,0.667
+RandomForest,2023,"{'n_estimators': 100, 'max_depth': None, 'max_features': 'sqrt', 'min_samples_split': 2}",0.429,0.45,0.458,0.417,0.546
+GradientBoosting,2023,"{'n_estimators': 300, 'learning_rate': 0.05, 'max_depth': 7, 'subsample': 0.8}",0.476,0.5,0.5,0.471,0.593
+KNN,2023,"{'n_neighbors': 3, 'weights': 'distance', 'metric': 'manhattan'}",0.571,0.558,0.556,0.555,0.556
+SVM,31415,"{'C': 100, 'gamma': 'auto', 'kernel': 'rbf'}",0.619,0.644,0.639,0.618,0.667
+RandomForest,31415,"{'n_estimators': 100, 'max_depth': None, 'max_features': 'sqrt', 'min_samples_split': 2}",0.429,0.45,0.458,0.417,0.583
+GradientBoosting,31415,"{'n_estimators': 300, 'learning_rate': 0.05, 'max_depth': 7, 'subsample': 0.8}",0.476,0.5,0.5,0.471,0.565
+KNN,31415,"{'n_neighbors': 3, 'weights': 'distance', 'metric': 'manhattan'}",0.571,0.558,0.556,0.555,0.556
+SVM,98765,"{'C': 100, 'gamma': 'auto', 'kernel': 'rbf'}",0.619,0.644,0.639,0.618,0.667
+RandomForest,98765,"{'n_estimators': 100, 'max_depth': None, 'max_features': 'sqrt', 'min_samples_split': 2}",0.476,0.519,0.514,0.456,0.505
+GradientBoosting,98765,"{'n_estimators': 300, 'learning_rate': 0.05, 'max_depth': 7, 'subsample': 0.8}",0.476,0.5,0.5,0.471,0.583
+KNN,98765,"{'n_neighbors': 3, 'weights': 'distance', 'metric': 'manhattan'}",0.571,0.558,0.556,0.555,0.556
